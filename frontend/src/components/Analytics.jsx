@@ -1,0 +1,346 @@
+import React, { useState, useEffect } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ZAxis } from 'recharts';
+import { TrendingUp, PieChart as PieIcon, Target, Bell, DollarSign, FileText, RefreshCw } from 'lucide-react';
+import { portfolioAPI, storage } from '../api';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
+const COLORS = ['#DAFF01', '#22C55E', '#3B82F6', '#8B5CF6', '#EF4444', '#F59E0B', '#EC4899', '#10B981'];
+
+const Analytics = () => {
+  const [sectorData, setSectorData] = useState([]);
+  const [positions, setPositions] = useState([]);
+  const [dividends, setDividends] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [goals, setGoals] = useState([]);
+  const [budget, setBudget] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('sectors');
+
+  const userId = storage.getUserId();
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+  };
+
+  const fetchData = async () => {
+    try {
+      const [positionsData, sectorDistribution, dividendsData, alertsData, goalsData, budgetData] = await Promise.all([
+        portfolioAPI.getPositions(userId),
+        axios.get(`${API}/analytics/sector-distribution?user_id=${userId}`),
+        axios.get(`${API}/dividends?user_id=${userId}`),
+        axios.get(`${API}/alerts?user_id=${userId}`),
+        axios.get(`${API}/goals?user_id=${userId}`),
+        axios.get(`${API}/budget?user_id=${userId}`)
+      ]);
+
+      setPositions(positionsData);
+      setSectorData(sectorDistribution.data);
+      setDividends(dividendsData.data);
+      setAlerts(alertsData.data);
+      setGoals(goalsData.data);
+      setBudget(budgetData.data);
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="container" style={{ padding: '32px 24px', textAlign: 'center' }}>
+        <div style={{ color: 'var(--text-muted)', fontSize: '18px' }}>Chargement des analyses...</div>
+      </div>
+    );
+  }
+
+  // Prepare risk/return scatter data
+  const riskReturnData = positions.map(pos => ({
+    symbol: pos.symbol,
+    volatility: pos.volatility,
+    return: pos.gain_loss_percent,
+    value: pos.total_value
+  }));
+
+  return (
+    <div className="container" style={{ padding: '32px 24px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '32px' }}>
+        <h1 className="display-md" style={{ marginBottom: '8px' }}>Analyses Avancées</h1>
+        <p className="body-md" style={{ color: 'var(--text-muted)' }}>Explorez en profondeur votre portefeuille</p>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ marginBottom: '32px' }}>
+        <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '12px', flexWrap: 'wrap' }}>
+          {[
+            { value: 'sectors', label: 'Secteurs', icon: PieIcon },
+            { value: 'risk', label: 'Risque/Rendement', icon: Target },
+            { value: 'dividends', label: 'Dividendes', icon: DollarSign },
+            { value: 'alerts', label: 'Alertes', icon: Bell },
+            { value: 'goals', label: 'Objectifs', icon: TrendingUp }
+          ].map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              style={{
+                flex: '1',
+                padding: '12px 20px',
+                border: 'none',
+                borderRadius: '8px',
+                background: activeTab === tab.value ? 'var(--accent-primary)' : 'transparent',
+                color: activeTab === tab.value ? 'var(--bg-primary)' : 'var(--text-secondary)',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontSize: '15px',
+                minWidth: '130px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <tab.icon size={18} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sector Distribution */}
+      {activeTab === 'sectors' && (
+        <div className="card">
+          <h2 className="h2" style={{ marginBottom: '24px' }}>Répartition Sectorielle</h2>
+          {sectorData.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', alignItems: 'center' }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={sectorData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ sector, percentage }) => `${sector}: ${percentage.toFixed(1)}%`}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {sectorData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      background: 'var(--bg-secondary)', 
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)'
+                    }}
+                    formatter={(value) => formatCurrency(value)}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {sectorData.map((sector, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: COLORS[idx % COLORS.length] }} />
+                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{sector.sector}</span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{sector.percentage.toFixed(1)}%</div>
+                      <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{formatCurrency(sector.value)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '48px' }}>Aucune donnée sectorielle disponible</p>
+          )}
+        </div>
+      )}
+
+      {/* Risk/Return Analysis */}
+      {activeTab === 'risk' && (
+        <div className="card">
+          <h2 className="h2" style={{ marginBottom: '24px' }}>Analyse Risque/Rendement</h2>
+          {riskReturnData.length > 0 ? (
+            <>
+              <p className="body-sm" style={{ marginBottom: '24px', color: 'var(--text-muted)' }}>
+                Ce graphique positionne chaque titre selon sa volatilité (risque) et son rendement. La taille des bulles représente la valeur de la position.
+              </p>
+              <ResponsiveContainer width="100%" height={450}>
+                <ScatterChart margin={{ top: 20, right: 20, bottom: 60, left: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                  <XAxis 
+                    type="number" 
+                    dataKey="volatility" 
+                    name="Volatilité" 
+                    unit="%" 
+                    stroke="var(--text-muted)"
+                    tick={{ fill: 'var(--text-muted)' }}
+                    label={{ value: 'Volatilité (%)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)' }}
+                  />
+                  <YAxis 
+                    type="number" 
+                    dataKey="return" 
+                    name="Rendement" 
+                    unit="%" 
+                    stroke="var(--text-muted)"
+                    tick={{ fill: 'var(--text-muted)' }}
+                    label={{ value: 'Rendement (%)', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)' }}
+                  />
+                  <ZAxis type="number" dataKey="value" range={[100, 1000]} />
+                  <Tooltip 
+                    cursor={{ strokeDasharray: '3 3' }}
+                    contentStyle={{ 
+                      background: 'var(--bg-secondary)', 
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)'
+                    }}
+                    formatter={(value, name) => {
+                      if (name === 'value') return [formatCurrency(value), 'Valeur'];
+                      return [`${value.toFixed(2)}%`, name === 'volatility' ? 'Volatilité' : 'Rendement'];
+                    }}
+                  />
+                  <Scatter name="Positions" data={riskReturnData} fill="var(--accent-primary)">
+                    {riskReturnData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.return >= 0 ? 'var(--success)' : 'var(--danger)'} />
+                    ))}
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+            </>
+          ) : (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '48px' }}>Ajoutez des positions pour voir l'analyse risque/rendement</p>
+          )}
+        </div>
+      )}
+
+      {/* Dividends Tracker */}
+      {activeTab === 'dividends' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 className="h2">Suivi des Dividendes</h2>
+            <button className="btn-primary" style={{ padding: '12px 24px' }}>
+              <DollarSign size={18} />
+              Ajouter un dividende
+            </button>
+          </div>
+          {dividends.length > 0 ? (
+            <div>
+              <div style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <div style={{ padding: '16px', background: 'var(--success-bg)', borderRadius: '12px', border: '1px solid var(--success)' }}>
+                  <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '4px' }}>Total Dividendes</div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success)' }}>
+                    {formatCurrency(dividends.reduce((sum, d) => sum + d.amount, 0))}
+                  </div>
+                </div>
+              </div>
+              {/* Dividend list would go here */}
+            </div>
+          ) : (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '48px' }}>
+              Aucun dividende enregistré. Commencez à tracker vos dividendes pour suivre vos revenus passifs.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Alerts */}
+      {activeTab === 'alerts' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 className="h2">Alertes de Prix</h2>
+            <button className="btn-primary" style={{ padding: '12px 24px' }}>
+              <Bell size={18} />
+              Créer une alerte
+            </button>
+          </div>
+          {alerts.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {alerts.map(alert => (
+                <div key={alert.id} style={{ padding: '16px', background: 'var(--bg-tertiary)', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                      {alert.symbol} - {alert.alert_type === 'price_above' ? 'Prix au-dessus' : alert.alert_type === 'price_below' ? 'Prix en-dessous' : 'Volatilité élevée'}
+                    </div>
+                    <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+                      Cible: {formatCurrency(alert.target_value)}
+                    </div>
+                  </div>
+                  <span className={`badge ${alert.is_active ? 'badge-success' : 'badge-danger'}`}>
+                    {alert.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '48px' }}>
+              Aucune alerte configurée. Créez des alertes pour être notifié des mouvements importants.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Goals */}
+      {activeTab === 'goals' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 className="h2">Objectifs Financiers</h2>
+            <button className="btn-primary" style={{ padding: '12px 24px' }}>
+              <TrendingUp size={18} />
+              Nouvel objectif
+            </button>
+          </div>
+          {goals.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {goals.map(goal => {
+                const progress = 0; // Would calculate actual progress
+                return (
+                  <div key={goal.id} style={{ padding: '20px', background: 'var(--bg-tertiary)', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                          {goal.title}
+                        </div>
+                        {goal.description && (
+                          <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{goal.description}</div>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--accent-primary)' }}>
+                          {formatCurrency(goal.target_amount)}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ height: '8px', background: 'var(--bg-primary)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ width: `${progress}%`, height: '100%', background: 'var(--accent-primary)', transition: 'width 0.3s ease' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '48px' }}>
+              Aucun objectif défini. Fixez-vous des objectifs financiers pour rester motivé!
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Analytics;
