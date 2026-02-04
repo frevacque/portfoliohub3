@@ -194,7 +194,8 @@ class PerformanceService:
             if hist_data is None or hist_data.empty:
                 return {'data': []}
             
-            # Filter by date range
+            # Filter by date range - make dates timezone naive for comparison
+            hist_data.index = hist_data.index.tz_localize(None)
             hist_data = hist_data[(hist_data.index >= start_date) & (hist_data.index <= end_date)]
             
             # Normalize to percentage change
