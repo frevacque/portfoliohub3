@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TrendingUp } from 'lucide-react';
+import { authAPI, storage } from '../api';
 
 const Login = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -8,11 +9,38 @@ const Login = ({ onLogin }) => {
     password: '',
     name: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Mock login - in real app, this would call backend API
-    onLogin({ name: formData.name || 'Jean Dupont', email: formData.email });
+    setLoading(true);
+    setError('');
+
+    try {
+      let userData;
+      if (isLogin) {
+        userData = await authAPI.login({
+          email: formData.email,
+          password: formData.password
+        });
+      } else {
+        userData = await authAPI.register({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        });
+      }
+      
+      // Store user data
+      storage.setUserId(userData.id);
+      storage.setUser(userData);
+      onLogin(userData);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -47,6 +75,20 @@ const Login = ({ onLogin }) => {
             Gérez votre portefeuille avec intelligence
           </p>
         </div>
+
+        {error && (
+          <div style={{
+            padding: '12px',
+            background: 'var(--danger-bg)',
+            border: '1px solid var(--danger)',
+            borderRadius: '8px',
+            marginBottom: '24px',
+            color: 'var(--danger)',
+            fontSize: '14px'
+          }}>
+            {error}
+          </div>
+        )}
 
         {/* Toggle */}
         <div style={{
@@ -156,8 +198,13 @@ const Login = ({ onLogin }) => {
             />
           </div>
 
-          <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-            {isLogin ? 'Se connecter' : 'Créer un compte'}
+          <button 
+            type="submit" 
+            className="btn-primary" 
+            style={{ width: '100%', marginTop: '8px' }}
+            disabled={loading}
+          >
+            {loading ? 'Chargement...' : (isLogin ? 'Se connecter' : 'Créer un compte')}
           </button>
         </form>
 
