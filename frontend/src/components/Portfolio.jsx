@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, TrendingUp, TrendingDown, X, Trash2 } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, X, Trash2, Calendar } from 'lucide-react';
 import { portfolioAPI, analyticsAPI, storage } from '../api';
 
 const Portfolio = () => {
@@ -13,7 +13,8 @@ const Portfolio = () => {
     symbol: '',
     type: 'stock',
     quantity: '',
-    avg_price: ''
+    avg_price: '',
+    purchase_date: new Date().toISOString().split('T')[0] // Date actuelle par défaut
   });
   const [error, setError] = useState('');
 
@@ -60,14 +61,21 @@ const Portfolio = () => {
         symbol: formData.symbol.toUpperCase(),
         type: formData.type,
         quantity: parseFloat(formData.quantity),
-        avg_price: parseFloat(formData.avg_price)
+        avg_price: parseFloat(formData.avg_price),
+        purchase_date: new Date(formData.purchase_date).toISOString()
       });
 
       // Refresh data
       await fetchData();
 
       setShowAddModal(false);
-      setFormData({ symbol: '', type: 'stock', quantity: '', avg_price: '' });
+      setFormData({ 
+        symbol: '', 
+        type: 'stock', 
+        quantity: '', 
+        avg_price: '',
+        purchase_date: new Date().toISOString().split('T')[0]
+      });
     } catch (err) {
       setError(err.response?.data?.detail || 'Erreur lors de l\'ajout de la position');
     } finally {
@@ -408,6 +416,20 @@ const Portfolio = () => {
                   placeholder="Ex: 150.50"
                   value={formData.avg_price}
                   onChange={(e) => setFormData({ ...formData, avg_price: e.target.value })}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={16} />
+                  Date d'achat
+                </label>
+                <input
+                  type="date"
+                  value={formData.purchase_date}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
                   className="input-field"
                 />
               </div>
