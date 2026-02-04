@@ -60,6 +60,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/performance" element={<Performance />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/history" element={<History />} />
         </Routes>
       </div>
