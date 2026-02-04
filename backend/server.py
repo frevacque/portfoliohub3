@@ -309,6 +309,7 @@ logger = logging.getLogger(__name__)
 async def shutdown_db_client():
     client.close()
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
