@@ -38,6 +38,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 yf_service = YahooFinanceService()
 analytics_service = PortfolioAnalytics()
 performance_service = PerformanceService()
+sector_service = SectorAnalysisService()
+alert_manager = AlertManager()
 
 # Create the main app without a prefix
 app = FastAPI(title="PortfolioHub API")
