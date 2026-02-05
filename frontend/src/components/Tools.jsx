@@ -102,6 +102,97 @@ const Tools = () => {
     }
   };
 
+  // Import CSV
+  const handleImportCSV = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      setImportResult(null);
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      // Parse CSV - support different formats
+      const positions = [];
+      let headerFound = false;
+      let headers = [];
+      
+      for (const line of lines) {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        
+        // Look for header line
+        if (!headerFound) {
+          const lowerLine = line.toLowerCase();
+          if (lowerLine.includes('symbol') || lowerLine.includes('symbole') || lowerLine.includes('ticker')) {
+            headers = values.map(h => h.toLowerCase());
+            headerFound = true;
+            continue;
+          }
+        }
+        
+        if (headerFound && values.length >= 2) {
+          const pos = {};
+          
+          // Map headers to values
+          headers.forEach((header, index) => {
+            if (index < values.length) {
+              if (header.includes('symbol') || header.includes('symbole') || header.includes('ticker')) {
+                pos.symbol = values[index];
+              } else if (header.includes('quant')) {
+                pos.quantity = values[index];
+              } else if (header.includes('prix') || header.includes('price') || header.includes('pru') || header.includes('avg')) {
+                pos.avg_price = values[index];
+              } else if (header.includes('type')) {
+                pos.type = values[index].toLowerCase().includes('crypto') ? 'crypto' : 'stock';
+              } else if (header.includes('date')) {
+                try {
+                  pos.purchase_date = new Date(values[index]).toISOString();
+                } catch (e) {
+                  pos.purchase_date = new Date().toISOString();
+                }
+              }
+            }
+          });
+          
+          if (pos.symbol && pos.quantity && pos.avg_price) {
+            positions.push(pos);
+          }
+        }
+      }
+      
+      if (positions.length === 0) {
+        setImportResult({
+          success: false,
+          message: 'Aucune position valide trouvée dans le fichier. Assurez-vous que le CSV contient les colonnes: Symbole, Quantité, Prix'
+        });
+        return;
+      }
+      
+      // Send to API
+      const response = await axios.post(`${API}/import/csv?user_id=${userId}`, positions);
+      setImportResult({
+        success: true,
+        message: response.data.message,
+        errors: response.data.errors
+      });
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+    } catch (error) {
+      console.error('Error importing CSV:', error);
+      setImportResult({
+        success: false,
+        message: 'Erreur lors de l\'import: ' + (error.response?.data?.detail || error.message)
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container" style={{ padding: '32px 24px' }}>
       {/* Header */}
