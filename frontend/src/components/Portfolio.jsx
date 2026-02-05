@@ -121,6 +121,54 @@ const Portfolio = () => {
     }
   };
 
+  // Notes functions
+  const openNotesModal = async (position) => {
+    setSelectedPosition(position);
+    setShowNotesModal(true);
+    try {
+      const response = await axios.get(`${API}/notes/${position.id}?user_id=${userId}`);
+      // Clean notes from MongoDB _id
+      const cleanNotes = response.data.map(note => ({
+        ...note,
+        created_at: note.created_at ? new Date(note.created_at).toLocaleString('fr-FR') : 'Date inconnue'
+      }));
+      setPositionNotes(cleanNotes);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+      setPositionNotes([]);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+    
+    try {
+      await axios.post(`${API}/notes?user_id=${userId}`, {
+        position_id: selectedPosition.id,
+        content: newNote
+      });
+      setNewNote('');
+      // Refresh notes
+      const response = await axios.get(`${API}/notes/${selectedPosition.id}?user_id=${userId}`);
+      const cleanNotes = response.data.map(note => ({
+        ...note,
+        created_at: note.created_at ? new Date(note.created_at).toLocaleString('fr-FR') : 'Date inconnue'
+      }));
+      setPositionNotes(cleanNotes);
+    } catch (error) {
+      console.error('Error adding note:', error);
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    try {
+      await axios.delete(`${API}/notes/${noteId}?user_id=${userId}`);
+      setPositionNotes(positionNotes.filter(n => n.id !== noteId));
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
+  };
+
   const filteredPositions = positions.filter(pos =>
     pos.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
     pos.name.toLowerCase().includes(searchTerm.toLowerCase())
