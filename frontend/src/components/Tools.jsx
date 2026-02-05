@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Download, Upload, FileText, Calendar, DollarSign, Target, TrendingUp, X, Plus } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Download, Upload, FileText, Calendar, DollarSign, Target, TrendingUp, X, Plus, AlertCircle, CheckCircle } from 'lucide-react';
 import { portfolioAPI, storage } from '../api';
 import axios from 'axios';
 
@@ -12,6 +12,8 @@ const Tools = () => {
   const [newBudget, setNewBudget] = useState({ monthly_amount: '', start_date: new Date().toISOString().split('T')[0] });
   const [simulation, setSimulation] = useState({ symbol: '', amount: '', result: null });
   const [loading, setLoading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const fileInputRef = useRef(null);
 
   const userId = storage.getUserId();
 
