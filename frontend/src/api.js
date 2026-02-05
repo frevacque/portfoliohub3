@@ -10,7 +10,10 @@ export const storage = {
   clearUserId: () => localStorage.removeItem('userId'),
   getUser: () => JSON.parse(localStorage.getItem('user') || 'null'),
   setUser: (user) => localStorage.setItem('user', JSON.stringify(user)),
-  clearUser: () => localStorage.removeItem('user')
+  clearUser: () => localStorage.removeItem('user'),
+  getActivePortfolioId: () => localStorage.getItem('activePortfolioId'),
+  setActivePortfolioId: (id) => localStorage.setItem('activePortfolioId', id),
+  clearActivePortfolioId: () => localStorage.removeItem('activePortfolioId')
 };
 
 // Auth API
@@ -25,14 +28,38 @@ export const authAPI = {
   }
 };
 
-// Portfolio API
-export const portfolioAPI = {
-  getSummary: async (userId) => {
-    const response = await axios.get(`${API}/portfolio/summary?user_id=${userId}`);
+// Portfolios API (multi-portfolio management)
+export const portfoliosAPI = {
+  getAll: async (userId) => {
+    const response = await axios.get(`${API}/portfolios?user_id=${userId}`);
     return response.data;
   },
-  getPositions: async (userId) => {
-    const response = await axios.get(`${API}/positions?user_id=${userId}`);
+  create: async (userId, data) => {
+    const response = await axios.post(`${API}/portfolios?user_id=${userId}`, data);
+    return response.data;
+  },
+  update: async (userId, portfolioId, data) => {
+    const response = await axios.put(`${API}/portfolios/${portfolioId}?user_id=${userId}`, data);
+    return response.data;
+  },
+  delete: async (userId, portfolioId) => {
+    const response = await axios.delete(`${API}/portfolios/${portfolioId}?user_id=${userId}`);
+    return response.data;
+  }
+};
+
+// Portfolio API
+export const portfolioAPI = {
+  getSummary: async (userId, portfolioId = null) => {
+    let url = `${API}/portfolio/summary?user_id=${userId}`;
+    if (portfolioId) url += `&portfolio_id=${portfolioId}`;
+    const response = await axios.get(url);
+    return response.data;
+  },
+  getPositions: async (userId, portfolioId = null) => {
+    let url = `${API}/positions?user_id=${userId}`;
+    if (portfolioId) url += `&portfolio_id=${portfolioId}`;
+    const response = await axios.get(url);
     return response.data;
   },
   addPosition: async (userId, data) => {
