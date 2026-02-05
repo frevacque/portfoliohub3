@@ -8,6 +8,7 @@ import Portfolio from './components/Portfolio';
 import History from './components/History';
 import Performance from './components/Performance';
 import Analytics from './components/Analytics';
+import Tools from './components/Tools';
 import { storage } from './api';
 
 function App() {
