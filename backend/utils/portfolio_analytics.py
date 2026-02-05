@@ -57,8 +57,13 @@ class PortfolioAnalytics:
         try:
             # Get market data
             market_data = self.yf_service.get_market_data('^GSPC', period)
-            if market_data is None:
+            if market_data is None or market_data.empty:
+                logger.warning("No market data available for beta calculation")
                 return 1.0
+            
+            # Make timezone naive
+            if market_data.index.tz is not None:
+                market_data.index = market_data.index.tz_localize(None)
             
             market_returns = self.yf_service.calculate_returns(market_data)
             
@@ -70,21 +75,29 @@ class PortfolioAnalytics:
             for position in positions:
                 hist_data = self.yf_service.get_historical_data(position['symbol'], period)
                 if hist_data is not None and not hist_data.empty:
+                    # Make timezone naive
+                    if hist_data.index.tz is not None:
+                        hist_data.index = hist_data.index.tz_localize(None)
+                    
                     returns = self.yf_service.calculate_returns(hist_data['Close'])
                     weight = position['total_value'] / total_value
                     weights.append(weight)
                     returns_data.append(returns)
             
             if not returns_data:
+                logger.warning("No returns data for beta calculation")
                 return 1.0
             
-            # Combine returns
-            portfolio_returns = pd.Series(0, index=market_returns.index)
+            # Combine returns using common index
+            common_index = market_returns.index
+            portfolio_returns = pd.Series(0, index=common_index)
+            
             for weight, returns in zip(weights, returns_data):
-                aligned_returns = returns.reindex(portfolio_returns.index, fill_value=0)
+                aligned_returns = returns.reindex(common_index, fill_value=0)
                 portfolio_returns += weight * aligned_returns
             
             beta = self.yf_service.calculate_beta(portfolio_returns, market_returns)
+            logger.info(f"Calculated portfolio beta: {beta}")
             return round(beta, 2)
         except Exception as e:
             logger.error(f"Error calculating portfolio beta: {str(e)}")
