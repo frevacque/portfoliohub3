@@ -32,10 +32,12 @@ class PositionCreate(BaseModel):
     quantity: float
     avg_price: float
     purchase_date: Optional[datetime] = None  # Date d'achat personnalisée
+    portfolio_id: Optional[str] = None  # ID du portefeuille (multi-portfolio)
 
 class Position(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
+    portfolio_id: Optional[str] = None  # Lié à un portefeuille spécifique
     symbol: str
     name: str
     type: str
