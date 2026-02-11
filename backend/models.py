@@ -197,3 +197,26 @@ class Budget(BaseModel):
     monthly_amount: float
     start_date: datetime
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Cash Models
+class CashTransactionCreate(BaseModel):
+    type: str  # "deposit" or "withdrawal"
+    amount: float
+    description: Optional[str] = None
+    date: Optional[datetime] = None
+
+class CashTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    type: str
+    amount: float
+    description: Optional[str] = None
+    date: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CashBalance(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    balance: float = 0.0
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
