@@ -269,15 +269,25 @@ async def get_portfolio_summary(user_id: str):
     # Calculate volatility
     volatility = analytics_service.calculate_portfolio_volatility(enriched_positions)
     
-    # Calculate beta
-    beta = analytics_service.calculate_portfolio_beta(enriched_positions)
+    # Calculate beta (detect market based on symbols)
+    # Check if positions are European (contain .PA, .DE, etc.)
+    is_european = any('.PA' in pos['symbol'] or '.DE' in pos['symbol'] or '.MI' in pos['symbol'] for pos in positions)
+    market_index = '^FCHI' if is_european else '^GSPC'  # CAC 40 for European, S&P 500 for US
+    beta = analytics_service.calculate_portfolio_beta(enriched_positions, market_index=market_index)
     
     # Calculate Sharpe ratio
     sharpe_ratio = analytics_service.calculate_sharpe_ratio(enriched_positions)
     
-    # Calculate daily change (simplified - using average of all positions)
+    # Calculate daily change
     daily_change = 0
     daily_change_percent = 0
+    for pos in positions:
+        change = yf_service.get_daily_change(pos['symbol'])
+        if change:
+            position_value = pos['quantity'] * (change.get('current_price', pos['avg_price']))
+            weight = position_value / total_value if total_value > 0 else 0
+            daily_change += pos['quantity'] * change.get('price_change', 0)
+            daily_change_percent += weight * change.get('change_percent', 0)
     
     return PortfolioSummary(
         total_value=round(total_value, 2),
