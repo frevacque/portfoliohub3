@@ -132,6 +132,36 @@ class YahooFinanceService:
             return None
     
     @staticmethod
+    def get_daily_change(symbol: str) -> Optional[Dict]:
+        """Get daily price change for a symbol"""
+        try:
+            ticker = yf.Ticker(symbol)
+            data = ticker.history(period='2d')
+            if data.empty or len(data) < 2:
+                # Try with info if history fails
+                info = ticker.info
+                return {
+                    'current_price': info.get('currentPrice', info.get('regularMarketPrice', 0)),
+                    'price_change': info.get('regularMarketChange', 0),
+                    'change_percent': info.get('regularMarketChangePercent', 0)
+                }
+            
+            current_price = float(data['Close'].iloc[-1])
+            previous_price = float(data['Close'].iloc[-2])
+            price_change = current_price - previous_price
+            change_percent = (price_change / previous_price * 100) if previous_price > 0 else 0
+            
+            return {
+                'current_price': current_price,
+                'previous_price': previous_price,
+                'price_change': price_change,
+                'change_percent': change_percent
+            }
+        except Exception as e:
+            logger.error(f"Error fetching daily change for {symbol}: {str(e)}")
+            return None
+    
+    @staticmethod
     def search_ticker(query: str) -> List[Dict]:
         """Search for tickers (basic implementation)"""
         # Note: yfinance doesn't have a built-in search, so this is a simplified version
