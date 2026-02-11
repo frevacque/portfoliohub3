@@ -15,7 +15,8 @@ from models import (
     PortfolioSummary, CorrelationItem, Recommendation,
     PerformanceResponse, DividendCreate, Dividend,
     AlertCreate, Alert, GoalCreate, Goal,
-    NoteCreate, Note, BudgetCreate, Budget
+    NoteCreate, Note, BudgetCreate, Budget,
+    CashTransactionCreate, CashTransaction, CashBalance
 )
 from models_portfolio import PortfolioCreate, Portfolio
 from utils.yahoo_finance import YahooFinanceService
