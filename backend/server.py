@@ -336,23 +336,31 @@ async def get_portfolio_summary(user_id: str):
     # Get all positions
     positions = await db.positions.find({"user_id": user_id}).to_list(1000)
     
+    # Get user settings for RFR
+    user_settings = await db.user_settings.find_one({"user_id": user_id})
+    risk_free_rate = user_settings['risk_free_rate'] if user_settings else 3.0
+    
     if not positions:
-        return PortfolioSummary(
-            total_value=0,
-            total_invested=0,
-            total_gain_loss=0,
-            gain_loss_percent=0,
-            daily_change=0,
-            daily_change_percent=0,
-            volatility={'daily': 0, 'monthly': 0, 'historical': 0},
-            beta=1.0,
-            sharpe_ratio=0
-        )
+        return {
+            "total_value": 0,
+            "total_invested": 0,
+            "total_gain_loss": 0,
+            "gain_loss_percent": 0,
+            "daily_change": 0,
+            "daily_change_percent": 0,
+            "volatility": {'historical': 0, 'realized': 0},
+            "beta": 1.0,
+            "sharpe_ratio": 0,
+            "risk_free_rate": risk_free_rate,
+            "holding_period_days": 0,
+            "first_purchase_date": None
+        }
     
     # Calculate portfolio metrics
     total_value = 0
     total_invested = 0
     enriched_positions = []
+    earliest_purchase_date = None
     
     for pos in positions:
         current_price = yf_service.get_current_price(pos['symbol'])
@@ -365,27 +373,35 @@ async def get_portfolio_summary(user_id: str):
         total_value += position_value
         total_invested += position_invested
         
+        # Track earliest purchase date
+        purchase_date = pos.get('purchase_date')
+        if purchase_date:
+            if earliest_purchase_date is None or purchase_date < earliest_purchase_date:
+                earliest_purchase_date = purchase_date
+        
         enriched_positions.append({
             'symbol': pos['symbol'],
             'total_value': position_value,
             'invested': position_invested,
-            'quantity': pos['quantity']
+            'quantity': pos['quantity'],
+            'purchase_date': pos.get('purchase_date')
         })
     
     total_gain_loss = total_value - total_invested
     gain_loss_percent = (total_gain_loss / total_invested * 100) if total_invested > 0 else 0
     
-    # Calculate volatility
+    # Calculate volatility (historical and realized)
     volatility = analytics_service.calculate_portfolio_volatility(enriched_positions)
+    realized_volatility = analytics_service.calculate_realized_volatility(enriched_positions)
+    volatility['realized'] = realized_volatility
     
     # Calculate beta (detect market based on symbols)
-    # Check if positions are European (contain .PA, .DE, etc.)
     is_european = any('.PA' in pos['symbol'] or '.DE' in pos['symbol'] or '.MI' in pos['symbol'] for pos in positions)
-    market_index = '^FCHI' if is_european else '^GSPC'  # CAC 40 for European, S&P 500 for US
+    market_index = '^FCHI' if is_european else '^GSPC'
     beta = analytics_service.calculate_portfolio_beta(enriched_positions, market_index=market_index)
     
-    # Calculate Sharpe ratio
-    sharpe_ratio = analytics_service.calculate_sharpe_ratio(enriched_positions)
+    # Calculate Sharpe ratio with user's RFR
+    sharpe_ratio = analytics_service.calculate_sharpe_ratio_custom(enriched_positions, risk_free_rate)
     
     # Calculate daily change
     daily_change = 0
@@ -398,17 +414,27 @@ async def get_portfolio_summary(user_id: str):
             daily_change += pos['quantity'] * change.get('price_change', 0)
             daily_change_percent += weight * change.get('change_percent', 0)
     
-    return PortfolioSummary(
-        total_value=round(total_value, 2),
-        total_invested=round(total_invested, 2),
-        total_gain_loss=round(total_gain_loss, 2),
-        gain_loss_percent=round(gain_loss_percent, 2),
-        daily_change=round(daily_change, 2),
-        daily_change_percent=round(daily_change_percent, 2),
-        volatility=volatility,
-        beta=beta,
-        sharpe_ratio=sharpe_ratio
-    )
+    # Calculate holding period
+    holding_period_days = 0
+    if earliest_purchase_date:
+        if hasattr(earliest_purchase_date, 'replace'):
+            earliest_purchase_date = earliest_purchase_date.replace(tzinfo=None)
+        holding_period_days = (datetime.utcnow() - earliest_purchase_date).days
+    
+    return {
+        "total_value": round(total_value, 2),
+        "total_invested": round(total_invested, 2),
+        "total_gain_loss": round(total_gain_loss, 2),
+        "gain_loss_percent": round(gain_loss_percent, 2),
+        "daily_change": round(daily_change, 2),
+        "daily_change_percent": round(daily_change_percent, 2),
+        "volatility": volatility,
+        "beta": beta,
+        "sharpe_ratio": sharpe_ratio,
+        "risk_free_rate": risk_free_rate,
+        "holding_period_days": holding_period_days,
+        "first_purchase_date": earliest_purchase_date.isoformat() if earliest_purchase_date else None
+    }
 
 # Analytics
 @api_router.get("/analytics/correlation")
