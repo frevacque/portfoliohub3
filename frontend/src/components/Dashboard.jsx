@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Activity, Target, BarChart3, AlertCircle, RefreshCw, Settings, Calendar, Percent, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Target, BarChart3, AlertCircle, RefreshCw, Settings, Calendar, Percent, X, Bell, CheckCircle } from 'lucide-react';
 import { portfolioAPI, analyticsAPI, storage } from '../api';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -10,6 +11,7 @@ const Dashboard = () => {
   const [portfolio, setPortfolio] = useState(null);
   const [positions, setPositions] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [triggeredAlerts, setTriggeredAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -40,11 +42,25 @@ const Dashboard = () => {
       setRecommendations(recommendationsData);
       setRiskFreeRate(settingsData.data.risk_free_rate || 3.0);
       setTempRFR(settingsData.data.risk_free_rate || 3.0);
+      
+      // Check alerts and get triggered ones
+      await axios.get(`${API}/alerts/check?user_id=${userId}`);
+      const alertsResponse = await axios.get(`${API}/alerts/triggered?user_id=${userId}`);
+      setTriggeredAlerts(alertsResponse.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleAcknowledgeAlert = async (alertId) => {
+    try {
+      await axios.put(`${API}/alerts/${alertId}/acknowledge?user_id=${userId}`);
+      setTriggeredAlerts(triggeredAlerts.filter(a => a.id !== alertId));
+    } catch (error) {
+      console.error('Error acknowledging alert:', error);
     }
   };
 
