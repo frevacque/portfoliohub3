@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Activity, Target, BarChart3, AlertCircle, RefreshCw, Settings, Calendar, Percent, X, Bell, CheckCircle } from 'lucide-react';
-import { portfolioAPI, analyticsAPI, storage } from '../api';
+import { TrendingUp, TrendingDown, Activity, Target, BarChart3, AlertCircle, RefreshCw, Settings, Calendar, Percent, X, Bell, CheckCircle, Briefcase } from 'lucide-react';
+import { portfolioAPI, analyticsAPI, storage, portfoliosAPI } from '../api';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -17,6 +17,7 @@ const Dashboard = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [riskFreeRate, setRiskFreeRate] = useState(3.0);
   const [tempRFR, setTempRFR] = useState(3.0);
+  const [activePortfolio, setActivePortfolio] = useState(null);
 
   const userId = storage.getUserId();
 
@@ -30,9 +31,20 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     try {
+      // Get portfolios first to determine active portfolio
+      const portfoliosData = await portfoliosAPI.getAll(userId);
+      const activePortfolioId = storage.getActivePortfolioId();
+      let currentPortfolio = portfoliosData.find(p => p.id === activePortfolioId);
+      if (!currentPortfolio && portfoliosData.length > 0) {
+        currentPortfolio = portfoliosData[0];
+        storage.setActivePortfolioId(currentPortfolio.id);
+      }
+      setActivePortfolio(currentPortfolio);
+      
+      // Fetch data with the active portfolio_id
       const [portfolioData, positionsData, recommendationsData, settingsData] = await Promise.all([
-        portfolioAPI.getSummary(userId),
-        portfolioAPI.getPositions(userId),
+        portfolioAPI.getSummary(userId, currentPortfolio?.id),
+        portfolioAPI.getPositions(userId, currentPortfolio?.id),
         analyticsAPI.getRecommendations(userId),
         axios.get(`${API}/settings?user_id=${userId}`)
       ]);
@@ -175,7 +187,10 @@ const Dashboard = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 className="display-md" style={{ marginBottom: '8px' }}>Tableau de bord</h1>
-          <p className="body-md" style={{ color: 'var(--text-muted)' }}>Vue d'ensemble de votre portefeuille</p>
+          <p className="body-md" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Briefcase size={16} />
+            {activePortfolio ? activePortfolio.name : 'Chargement...'}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button

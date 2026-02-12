@@ -207,18 +207,45 @@ async def add_position(position_data: PositionCreate, user_id: str):
             raise HTTPException(status_code=400, detail=f"Quantité insuffisante. Vous détenez {old_quantity} unités de {symbol_upper}")
         
         new_quantity = old_quantity - quantity
+        sale_total = quantity * price
         
-        # Create sell transaction
+        # Create sell transaction with portfolio_id
         transaction = Transaction(
             user_id=user_id,
             symbol=symbol_upper,
             type="sell",
             quantity=quantity,
             price=price,
-            total=quantity * price,
+            total=sale_total,
             date=transaction_date
         )
-        await db.transactions.insert_one(transaction.dict())
+        transaction_dict = transaction.dict()
+        transaction_dict['portfolio_id'] = portfolio_id
+        await db.transactions.insert_one(transaction_dict)
+        
+        # Update cash balance (selling adds money)
+        balance_doc = await db.cash_balances.find_one({"user_id": user_id})
+        current_balance = balance_doc['balance'] if balance_doc else 0.0
+        new_balance = current_balance + sale_total
+        
+        if balance_doc:
+            await db.cash_balances.update_one(
+                {"user_id": user_id},
+                {"$set": {"balance": new_balance, "updated_at": datetime.utcnow()}}
+            )
+        else:
+            new_balance_doc = CashBalance(user_id=user_id, balance=new_balance)
+            await db.cash_balances.insert_one(new_balance_doc.dict())
+        
+        # Create automatic cash transaction for the sale
+        cash_transaction = CashTransaction(
+            user_id=user_id,
+            type="deposit",
+            amount=sale_total,
+            description=f"Vente {quantity} x {symbol_upper} à {price}€",
+            date=transaction_date
+        )
+        await db.cash_transactions.insert_one(cash_transaction.dict())
         
         if new_quantity <= 0:
             # Position completely sold - delete it
@@ -227,7 +254,9 @@ async def add_position(position_data: PositionCreate, user_id: str):
                 "id": existing_position['id'],
                 "symbol": symbol_upper,
                 "quantity": 0,
-                "message": f"Position {symbol_upper} entièrement vendue ({quantity} unités à {price}€)"
+                "sale_total": round(sale_total, 2),
+                "new_cash_balance": round(new_balance, 2),
+                "message": f"Position {symbol_upper} entièrement vendue ({quantity} unités à {price}€). +{round(sale_total, 2)}€ ajoutés au solde cash."
             }
         else:
             # Partial sell - update quantity (PRU stays the same)
@@ -245,7 +274,9 @@ async def add_position(position_data: PositionCreate, user_id: str):
                 "symbol": symbol_upper,
                 "quantity": new_quantity,
                 "avg_price": existing_position['avg_price'],
-                "message": f"Vente partielle: {quantity} unités vendues à {price}€. Reste {new_quantity} unités"
+                "sale_total": round(sale_total, 2),
+                "new_cash_balance": round(new_balance, 2),
+                "message": f"Vente partielle: {quantity} unités vendues à {price}€. Reste {new_quantity} unités. +{round(sale_total, 2)}€ ajoutés au solde cash."
             }
     else:
         # BUY TRANSACTION
@@ -380,9 +411,14 @@ async def merge_duplicate_positions(user_id: str):
 
 # Portfolio Summary
 @api_router.get("/portfolio/summary")
-async def get_portfolio_summary(user_id: str):
-    # Get all positions
-    positions = await db.positions.find({"user_id": user_id}).to_list(1000)
+async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None):
+    # Build query based on portfolio_id
+    query = {"user_id": user_id}
+    if portfolio_id:
+        query["portfolio_id"] = portfolio_id
+    
+    # Get positions
+    positions = await db.positions.find(query).to_list(1000)
     
     # Get user settings for RFR
     user_settings = await db.user_settings.find_one({"user_id": user_id})
