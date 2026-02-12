@@ -281,6 +281,54 @@ async def delete_position(position_id: str, user_id: str):
         raise HTTPException(status_code=404, detail="Position not found")
     return {"message": "Position deleted successfully"}
 
+# Merge duplicate positions utility endpoint
+@api_router.post("/positions/merge-duplicates")
+async def merge_duplicate_positions(user_id: str):
+    """Merge all duplicate positions (same symbol) into single positions with weighted average price"""
+    positions = await db.positions.find({"user_id": user_id}).to_list(1000)
+    
+    if not positions:
+        return {"message": "Aucune position trouvée", "merged": 0}
+    
+    # Group positions by (portfolio_id, symbol)
+    position_groups = {}
+    for pos in positions:
+        key = (pos.get('portfolio_id', 'default'), pos['symbol'])
+        if key not in position_groups:
+            position_groups[key] = []
+        position_groups[key].append(pos)
+    
+    merged_count = 0
+    
+    for key, group in position_groups.items():
+        if len(group) > 1:
+            # Multiple positions for same symbol - merge them
+            total_quantity = sum(p['quantity'] for p in group)
+            weighted_avg = sum(p['quantity'] * p['avg_price'] for p in group) / total_quantity
+            
+            # Keep the first position and update it
+            main_position = group[0]
+            await db.positions.update_one(
+                {"id": main_position['id']},
+                {
+                    "$set": {
+                        "quantity": total_quantity,
+                        "avg_price": round(weighted_avg, 4),
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            # Delete the other duplicate positions
+            for pos in group[1:]:
+                await db.positions.delete_one({"id": pos['id']})
+                merged_count += 1
+    
+    return {
+        "message": f"{merged_count} positions en doublon fusionnées",
+        "merged": merged_count
+    }
+
 # Portfolio Summary
 @api_router.get("/portfolio/summary")
 async def get_portfolio_summary(user_id: str):
