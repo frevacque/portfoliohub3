@@ -220,3 +220,12 @@ class CashBalance(BaseModel):
     balance: float = 0.0
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+# User Settings Models
+class UserSettingsUpdate(BaseModel):
+    risk_free_rate: Optional[float] = None  # Taux sans risque en % (ex: 3.5 pour 3.5%)
+
+class UserSettings(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    risk_free_rate: float = 3.0  # Default 3% (typical for government bonds)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
