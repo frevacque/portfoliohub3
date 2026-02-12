@@ -171,6 +171,34 @@ const Portfolio = () => {
     }
   };
 
+  // Merge duplicate positions
+  const handleMergeDuplicates = async () => {
+    setMerging(true);
+    setSuccessMessage('');
+    try {
+      const response = await axios.post(`${API}/positions/merge-duplicates?user_id=${userId}`);
+      if (response.data.merged > 0) {
+        setSuccessMessage(`✅ ${response.data.merged} positions fusionnées avec succès !`);
+        await fetchData(); // Refresh data
+      } else {
+        setSuccessMessage('✅ Aucun doublon trouvé, vos positions sont déjà consolidées.');
+      }
+      // Clear message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Error merging duplicates:', error);
+      setError('Erreur lors de la fusion des doublons');
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  // Check if there are duplicate symbols
+  const hasDuplicates = () => {
+    const symbols = positions.map(p => p.symbol);
+    return symbols.length !== new Set(symbols).size;
+  };
+
   const filteredPositions = positions.filter(pos =>
     pos.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
     pos.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -186,8 +214,23 @@ const Portfolio = () => {
 
   return (
     <div className="container" style={{ padding: '32px 24px' }}>
+      {/* Success Message */}
+      {successMessage && (
+        <div style={{
+          padding: '16px',
+          marginBottom: '24px',
+          background: 'var(--success-bg)',
+          border: '1px solid var(--success)',
+          borderRadius: '12px',
+          color: 'var(--success)',
+          fontWeight: '600'
+        }}>
+          {successMessage}
+        </div>
+      )}
+
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 className="display-md" style={{ marginBottom: '8px' }}>Mes Positions</h1>
           <p className="body-md" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
