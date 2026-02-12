@@ -385,8 +385,11 @@ const Dashboard = () => {
       {positions.length > 0 && (
         <div className="card" style={{ marginBottom: '32px' }}>
           <h2 className="h2" style={{ marginBottom: '24px' }}>Principales Positions</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {positions.map(position => (
+          <p className="body-sm" style={{ color: 'var(--text-muted)', marginBottom: '20px', marginTop: '-16px' }}>
+            Triées par poids dans le portefeuille (du plus important au moins important)
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {positions.map((position, index) => (
               <div key={position.id} style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -395,7 +398,8 @@ const Dashboard = () => {
                 background: 'var(--bg-tertiary)',
                 borderRadius: '12px',
                 transition: 'all 0.2s ease',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                borderLeft: `4px solid ${index === 0 ? 'var(--accent-primary)' : 'transparent'}`
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'var(--bg-primary)';
@@ -405,6 +409,24 @@ const Dashboard = () => {
                 e.currentTarget.style.background = 'var(--bg-tertiary)';
                 e.currentTarget.style.transform = 'translateX(0)';
               }}>
+                {/* Rank indicator */}
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '50%', 
+                  background: index === 0 ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                  color: index === 0 ? 'var(--bg-primary)' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  marginRight: '16px',
+                  flexShrink: 0
+                }}>
+                  {index + 1}
+                </div>
+                
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
                     <span style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
@@ -416,15 +438,34 @@ const Dashboard = () => {
                   </div>
                   <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{position.name}</div>
                 </div>
-                <div style={{ textAlign: 'right', marginRight: '32px' }}>
-                  <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                    {formatCurrency(position.total_value)}
+                
+                {/* Weight - More prominent */}
+                <div style={{ 
+                  textAlign: 'center', 
+                  marginRight: '24px',
+                  padding: '8px 16px',
+                  background: 'var(--accent-bg)',
+                  borderRadius: '8px',
+                  minWidth: '80px'
+                }}>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--accent-primary)' }}>
+                    {position.weight.toFixed(1)}%
                   </div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-                    {position.weight.toFixed(1)}% du portefeuille
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Poids
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                
+                <div style={{ textAlign: 'right', marginRight: '24px', minWidth: '100px' }}>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                    {formatCurrency(position.total_value)}
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    {position.quantity} unités
+                  </div>
+                </div>
+                
+                <div style={{ textAlign: 'right', minWidth: '80px' }}>
                   <div style={{
                     fontSize: '16px',
                     fontWeight: '600',
@@ -432,7 +473,7 @@ const Dashboard = () => {
                   }}>
                     {formatPercent(position.gain_loss_percent)}
                   </div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Beta: {(position.beta || 1).toFixed(2)}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>P&L</div>
                 </div>
               </div>
             ))}
