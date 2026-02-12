@@ -23,9 +23,10 @@ const Portfolio = () => {
   const [formData, setFormData] = useState({
     symbol: '',
     type: 'stock',
+    transaction_type: 'buy', // 'buy' or 'sell'
     quantity: '',
     avg_price: '',
-    purchase_date: new Date().toISOString().split('T')[0] // Date actuelle par défaut
+    purchase_date: new Date().toISOString().split('T')[0]
   });
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
