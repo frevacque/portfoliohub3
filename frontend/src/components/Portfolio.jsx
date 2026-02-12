@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, TrendingUp, TrendingDown, X, Trash2, Calendar, Briefcase, StickyNote, Save } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, X, Trash2, Calendar, Briefcase, StickyNote, Save, Merge } from 'lucide-react';
 import { portfolioAPI, analyticsAPI, storage, portfoliosAPI } from '../api';
 import axios from 'axios';
 
@@ -17,6 +17,7 @@ const Portfolio = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [merging, setMerging] = useState(false);
   const [activePortfolio, setActivePortfolio] = useState(null);
   const [portfolios, setPortfolios] = useState([]);
   const [formData, setFormData] = useState({
@@ -27,6 +28,7 @@ const Portfolio = () => {
     purchase_date: new Date().toISOString().split('T')[0] // Date actuelle par défaut
   });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const userId = storage.getUserId();
 
