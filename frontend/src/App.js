@@ -68,7 +68,6 @@ function App() {
           <Route path="/performance" element={<Performance />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/alerts" element={<Alerts />} />
-          <Route path="/goals" element={<Goals />} />
           <Route path="/tools" element={<Tools />} />
           <Route path="/history" element={<History />} />
         </Routes>
