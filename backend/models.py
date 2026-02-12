@@ -149,10 +149,13 @@ class Alert(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     symbol: str
-    alert_type: str
+    alert_type: str  # "price_above", "price_below"
     target_value: float
     is_active: bool = True
     is_triggered: bool = False
+    is_acknowledged: bool = False  # User has seen/dismissed the notification
+    triggered_at: Optional[datetime] = None
+    triggered_price: Optional[float] = None
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
