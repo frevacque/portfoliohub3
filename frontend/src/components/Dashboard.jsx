@@ -105,6 +105,68 @@ const Dashboard = () => {
 
   return (
     <div className="container" style={{ padding: '32px 24px' }}>
+      {/* Triggered Alerts Notification */}
+      {triggeredAlerts.length > 0 && (
+        <div style={{
+          marginBottom: '24px',
+          padding: '20px',
+          background: 'linear-gradient(135deg, var(--warning-bg) 0%, rgba(251, 191, 36, 0.1) 100%)',
+          border: '2px solid var(--warning)',
+          borderRadius: '16px',
+          animation: 'pulse 2s infinite'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Bell size={24} color="var(--warning)" style={{ animation: 'shake 0.5s ease-in-out infinite' }} />
+              <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--warning)' }}>
+                {triggeredAlerts.length} Alerte{triggeredAlerts.length > 1 ? 's' : ''} Déclenchée{triggeredAlerts.length > 1 ? 's' : ''} !
+              </span>
+            </div>
+            <Link to="/alerts" style={{ fontSize: '14px', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: '600' }}>
+              Voir toutes →
+            </Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {triggeredAlerts.slice(0, 3).map(alert => (
+              <div key={alert.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                background: 'var(--bg-secondary)',
+                borderRadius: '10px'
+              }}>
+                <div>
+                  <span style={{ fontWeight: '700', color: 'var(--text-primary)', marginRight: '12px' }}>{alert.symbol}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+                    {alert.alert_type === 'price_above' ? '↑' : '↓'} Cible {formatCurrency(alert.target_value)} atteinte à {formatCurrency(alert.triggered_price)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleAcknowledgeAlert(alert.id)}
+                  style={{
+                    padding: '8px 16px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    background: 'var(--success)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: '600',
+                    fontSize: '13px'
+                  }}
+                >
+                  <CheckCircle size={14} />
+                  OK
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
