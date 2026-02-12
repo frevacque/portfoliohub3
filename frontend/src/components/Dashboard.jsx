@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Activity, Target, BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Target, BarChart3, AlertCircle, RefreshCw, Settings, Calendar, Percent, X } from 'lucide-react';
 import { portfolioAPI, analyticsAPI, storage } from '../api';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const Dashboard = () => {
   const [portfolio, setPortfolio] = useState(null);
@@ -8,6 +12,9 @@ const Dashboard = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [riskFreeRate, setRiskFreeRate] = useState(3.0);
+  const [tempRFR, setTempRFR] = useState(3.0);
 
   const userId = storage.getUserId();
 
@@ -21,15 +28,18 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [portfolioData, positionsData, recommendationsData] = await Promise.all([
+      const [portfolioData, positionsData, recommendationsData, settingsData] = await Promise.all([
         portfolioAPI.getSummary(userId),
         portfolioAPI.getPositions(userId),
-        analyticsAPI.getRecommendations(userId)
+        analyticsAPI.getRecommendations(userId),
+        axios.get(`${API}/settings?user_id=${userId}`)
       ]);
       
       setPortfolio(portfolioData);
-      setPositions(positionsData.slice(0, 5)); // Top 5 positions
+      setPositions(positionsData.slice(0, 5));
       setRecommendations(recommendationsData);
+      setRiskFreeRate(settingsData.data.risk_free_rate || 3.0);
+      setTempRFR(settingsData.data.risk_free_rate || 3.0);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -45,6 +55,18 @@ const Dashboard = () => {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchData();
+  };
+
+  const handleSaveRFR = async () => {
+    try {
+      await axios.put(`${API}/settings?user_id=${userId}`, { risk_free_rate: tempRFR });
+      setRiskFreeRate(tempRFR);
+      setShowSettingsModal(false);
+      // Refresh to recalculate Sharpe ratio
+      handleRefresh();
+    } catch (error) {
+      console.error('Error saving RFR:', error);
+    }
   };
 
   if (loading) {
@@ -68,58 +90,131 @@ const Dashboard = () => {
   return (
     <div className="container" style={{ padding: '32px 24px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 className="display-md" style={{ marginBottom: '8px' }}>Tableau de bord</h1>
           <p className="body-md" style={{ color: 'var(--text-muted)' }}>Vue d'ensemble de votre portefeuille</p>
         </div>
-        <button
-          onClick={handleRefresh}
-          className="btn-secondary"
-          disabled={refreshing}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-        >
-          <RefreshCw size={18} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-          Actualiser
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            data-testid="settings-btn"
+          >
+            <Settings size={18} />
+            Paramètres
+          </button>
+          <button
+            onClick={handleRefresh}
+            className="btn-primary"
+            disabled={refreshing}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <RefreshCw size={18} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+            Actualiser
+          </button>
+        </div>
       </div>
 
-      {/* Portfolio Summary Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '24px',
-        marginBottom: '32px'
+      {/* Performance Globale - Nouveau bloc */}
+      <div className="card" style={{ 
+        marginBottom: '32px', 
+        background: 'linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%)',
+        border: '2px solid var(--accent-primary)',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        {/* Total Value */}
-        <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'var(--accent-primary)' }} />
-          <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>Valeur Totale</div>
-          <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-primary)' }}>
-            {formatCurrency(portfolio.total_value)}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'var(--accent-primary)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <TrendingUp size={28} color="var(--accent-primary)" />
+          <h2 className="h2">Performance Globale</h2>
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+          {/* Valeur Totale */}
+          <div>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Valeur Actuelle</div>
+            <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--text-primary)' }}>
+              {formatCurrency(portfolio.total_value)}
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {portfolio.gain_loss_percent >= 0 ? (
-              <TrendingUp size={18} color="var(--success)" />
-            ) : (
-              <TrendingDown size={18} color="var(--danger)" />
-            )}
-            <span style={{
-              color: portfolio.gain_loss_percent >= 0 ? 'var(--success)' : 'var(--danger)',
-              fontSize: '16px',
-              fontWeight: '600'
+          
+          {/* Montant Investi */}
+          <div>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Capital Investi</div>
+            <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+              {formatCurrency(portfolio.total_invested)}
+            </div>
+          </div>
+          
+          {/* Gain/Perte Absolue */}
+          <div>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Gain/Perte Total</div>
+            <div style={{ 
+              fontSize: '36px', 
+              fontWeight: '700', 
+              color: portfolio.total_gain_loss >= 0 ? 'var(--success)' : 'var(--danger)' 
             }}>
+              {portfolio.total_gain_loss >= 0 ? '+' : ''}{formatCurrency(portfolio.total_gain_loss)}
+            </div>
+          </div>
+          
+          {/* Performance % */}
+          <div>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Performance</div>
+            <div style={{ 
+              fontSize: '36px', 
+              fontWeight: '700', 
+              color: portfolio.gain_loss_percent >= 0 ? 'var(--success)' : 'var(--danger)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              {portfolio.gain_loss_percent >= 0 ? <TrendingUp size={28} /> : <TrendingDown size={28} />}
               {formatPercent(portfolio.gain_loss_percent)}
-            </span>
-            <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>depuis le début</span>
+            </div>
           </div>
         </div>
 
-        {/* Daily Change */}
+        {/* Période de détention */}
+        {portfolio.holding_period_days > 0 && (
+          <div style={{ 
+            marginTop: '24px', 
+            paddingTop: '24px', 
+            borderTop: '1px solid var(--border-subtle)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={18} color="var(--text-muted)" />
+              <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+                Depuis {portfolio.holding_period_days} jours
+              </span>
+            </div>
+            {portfolio.first_purchase_date && (
+              <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+                (première position le {new Date(portfolio.first_purchase_date).toLocaleDateString('fr-FR')})
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Métriques principales */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '24px',
+        marginBottom: '32px'
+      }}>
+        {/* Variation Journalière */}
         <div className="card">
           <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>Variation Journalière</div>
-          <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: portfolio.daily_change >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-            {formatCurrency(portfolio.daily_change)}
+          <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px', color: portfolio.daily_change >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+            {portfolio.daily_change >= 0 ? '+' : ''}{formatCurrency(portfolio.daily_change)}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Activity size={18} color="var(--text-muted)" />
@@ -136,29 +231,36 @@ const Dashboard = () => {
         {/* Beta */}
         <div className="card">
           <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>Bêta du Portefeuille</div>
-          <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-primary)' }}>
             {portfolio.beta.toFixed(2)}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Target size={18} color="var(--text-muted)" />
-            <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Exposition au marché</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+              {portfolio.beta > 1 ? 'Plus volatil que le marché' : portfolio.beta < 1 ? 'Moins volatil que le marché' : 'Neutre'}
+            </span>
           </div>
         </div>
 
-        {/* Sharpe Ratio */}
+        {/* Sharpe Ratio avec RFR */}
         <div className="card">
-          <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>Ratio de Sharpe</div>
-          <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Ratio de Sharpe</span>
+            <span style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>RFR: {riskFreeRate}%</span>
+          </div>
+          <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px', color: portfolio.sharpe_ratio >= 1 ? 'var(--success)' : portfolio.sharpe_ratio >= 0 ? 'var(--text-primary)' : 'var(--danger)' }}>
             {portfolio.sharpe_ratio.toFixed(2)}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <BarChart3 size={18} color="var(--text-muted)" />
-            <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Rendement ajusté</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+              {portfolio.sharpe_ratio >= 1 ? 'Excellent' : portfolio.sharpe_ratio >= 0.5 ? 'Bon' : portfolio.sharpe_ratio >= 0 ? 'Acceptable' : 'À améliorer'}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Volatility Section */}
+      {/* Volatilité Section - Mise à jour */}
       <div className="card" style={{ marginBottom: '32px' }}>
         <h2 className="h2" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Activity size={24} color="var(--accent-primary)" />
@@ -166,25 +268,32 @@ const Dashboard = () => {
         </h2>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '24px'
         }}>
-          <div>
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Journalière</div>
-            <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
-              {portfolio.volatility.daily.toFixed(2)}%
+          {/* Volatilité Historique */}
+          <div style={{ padding: '20px', background: 'var(--bg-tertiary)', borderRadius: '12px' }}>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Volatilité Historique (1 an)
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {(portfolio.volatility?.historical || 0).toFixed(2)}%
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              Basée sur les données historiques des titres
             </div>
           </div>
-          <div>
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Mensuelle</div>
-            <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
-              {portfolio.volatility.monthly.toFixed(2)}%
+          
+          {/* Volatilité Réalisée */}
+          <div style={{ padding: '20px', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--accent-primary)' }}>
+            <div style={{ fontSize: '14px', color: 'var(--accent-primary)', marginBottom: '12px', fontWeight: '600' }}>
+              Volatilité Réalisée (votre gestion)
             </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Historique</div>
-            <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
-              {portfolio.volatility.historical.toFixed(2)}%
+            <div style={{ fontSize: '32px', fontWeight: '700', color: 'var(--accent-primary)', marginBottom: '8px' }}>
+              {(portfolio.volatility?.realized || 0).toFixed(2)}%
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              Calculée depuis vos dates d'achat réelles
             </div>
           </div>
         </div>
@@ -241,7 +350,7 @@ const Dashboard = () => {
                   }}>
                     {formatPercent(position.gain_loss_percent)}
                   </div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Volatilité: {position.volatility.toFixed(1)}%</div>
+                  <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Beta: {(position.beta || 1).toFixed(2)}</div>
                 </div>
               </div>
             ))}
@@ -282,8 +391,98 @@ const Dashboard = () => {
             Aucune position dans votre portefeuille
           </p>
           <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-            Ajoutez votre première position dans l'onglet Portefeuille
+            Ajoutez votre première position dans l'onglet Positions
           </p>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '24px'
+        }}>
+          <div className="card" style={{ maxWidth: '450px', width: '100%', position: 'relative' }}>
+            <button
+              onClick={() => setShowSettingsModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '8px'
+              }}
+            >
+              <X size={24} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+              <Settings size={28} color="var(--accent-primary)" />
+              <h2 className="h2">Paramètres du Dashboard</h2>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                Taux Sans Risque (RFR)
+              </label>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                Utilisé pour le calcul du ratio de Sharpe. Généralement basé sur le rendement des obligations d'État.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="20"
+                  value={tempRFR}
+                  onChange={(e) => setTempRFR(parseFloat(e.target.value) || 0)}
+                  className="input-field"
+                  style={{ flex: 1, textAlign: 'center', fontSize: '20px', fontWeight: '600' }}
+                />
+                <Percent size={24} color="var(--text-muted)" />
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                {[1, 2, 3, 4, 5].map(rate => (
+                  <button
+                    key={rate}
+                    onClick={() => setTempRFR(rate)}
+                    style={{
+                      padding: '8px 16px',
+                      border: `1px solid ${tempRFR === rate ? 'var(--accent-primary)' : 'var(--border-primary)'}`,
+                      borderRadius: '8px',
+                      background: tempRFR === rate ? 'var(--accent-bg)' : 'transparent',
+                      color: tempRFR === rate ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    {rate}%
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button 
+              className="btn-primary" 
+              onClick={handleSaveRFR}
+              style={{ width: '100%' }}
+            >
+              Enregistrer
+            </button>
+          </div>
         </div>
       )}
 
