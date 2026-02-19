@@ -70,6 +70,13 @@ const Dashboard = () => {
       setRecommendations(recommendationsData);
       setRiskFreeRate(settingsData.data.risk_free_rate || 3.0);
       setTempRFR(settingsData.data.risk_free_rate || 3.0);
+      setBenchmarkIndex(settingsData.data.benchmark_index || '^GSPC');
+      setTempBenchmark(settingsData.data.benchmark_index || '^GSPC');
+      // Check if custom benchmark (not in presets)
+      const isPreset = PRESET_BENCHMARKS.some(b => b.value === settingsData.data.benchmark_index);
+      if (!isPreset && settingsData.data.benchmark_index) {
+        setCustomBenchmark(settingsData.data.benchmark_index);
+      }
       
       // Check alerts and get triggered ones
       await axios.get(`${API}/alerts/check?user_id=${userId}`);
