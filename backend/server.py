@@ -426,9 +426,10 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
     # Get positions
     positions = await db.positions.find(query).to_list(1000)
     
-    # Get user settings for RFR
+    # Get user settings for RFR and benchmark
     user_settings = await db.user_settings.find_one({"user_id": user_id})
-    risk_free_rate = user_settings['risk_free_rate'] if user_settings else 3.0
+    risk_free_rate = user_settings.get('risk_free_rate', 3.0) if user_settings else 3.0
+    benchmark_index = user_settings.get('benchmark_index', '^GSPC') if user_settings else '^GSPC'
     
     if not positions:
         return {
@@ -442,6 +443,7 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
             "beta": 1.0,
             "sharpe_ratio": 0,
             "risk_free_rate": risk_free_rate,
+            "benchmark_index": benchmark_index,
             "holding_period_days": 0,
             "first_purchase_date": None
         }
@@ -485,10 +487,8 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
     realized_volatility = analytics_service.calculate_realized_volatility(enriched_positions)
     volatility['realized'] = realized_volatility
     
-    # Calculate beta (detect market based on symbols)
-    is_european = any('.PA' in pos['symbol'] or '.DE' in pos['symbol'] or '.MI' in pos['symbol'] for pos in positions)
-    market_index = '^FCHI' if is_european else '^GSPC'
-    beta = analytics_service.calculate_portfolio_beta(enriched_positions, market_index=market_index)
+    # Calculate beta using user's benchmark
+    beta = analytics_service.calculate_portfolio_beta(enriched_positions, market_index=benchmark_index)
     
     # Calculate Sharpe ratio with user's RFR
     sharpe_ratio = analytics_service.calculate_sharpe_ratio_custom(enriched_positions, risk_free_rate)
