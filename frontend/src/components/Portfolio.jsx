@@ -498,12 +498,16 @@ const Portfolio = () => {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: '24px'
+          padding: '16px',
+          overflow: 'auto'
         }}>
           <div className="card" style={{
-            maxWidth: '500px',
+            maxWidth: '420px',
             width: '100%',
-            position: 'relative'
+            position: 'relative',
+            padding: '20px',
+            maxHeight: '90vh',
+            overflow: 'auto'
           }}>
             <button
               onClick={() => {
@@ -512,60 +516,61 @@ const Portfolio = () => {
               }}
               style={{
                 position: 'absolute',
-                top: '16px',
-                right: '16px',
+                top: '12px',
+                right: '12px',
                 background: 'transparent',
                 border: 'none',
                 color: 'var(--text-muted)',
                 cursor: 'pointer',
-                padding: '8px'
+                padding: '4px'
               }}
             >
-              <X size={24} />
+              <X size={20} />
             </button>
 
-            <h2 className="h2" style={{ marginBottom: '24px' }}>Nouvelle Transaction</h2>
+            <h2 className="h3" style={{ marginBottom: '16px' }}>Nouvelle Transaction</h2>
 
             {error && (
               <div style={{
-                padding: '12px',
+                padding: '10px',
                 background: 'var(--danger-bg)',
                 border: '1px solid var(--danger)',
-                borderRadius: '8px',
-                marginBottom: '20px',
+                borderRadius: '6px',
+                marginBottom: '16px',
                 color: 'var(--danger)',
-                fontSize: '14px'
+                fontSize: '13px'
               }}>
                 {error}
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {/* Transaction Type - Buy/Sell */}
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>
                   Type de transaction
                 </label>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, transaction_type: 'buy' })}
                     style={{
                       flex: 1,
-                      padding: '16px',
+                      padding: '10px',
                       border: `2px solid ${formData.transaction_type === 'buy' ? 'var(--success)' : 'var(--border-primary)'}`,
-                      borderRadius: '12px',
+                      borderRadius: '8px',
                       background: formData.transaction_type === 'buy' ? 'var(--success-bg)' : 'transparent',
                       color: formData.transaction_type === 'buy' ? 'var(--success)' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '8px',
-                      fontWeight: '600'
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontWeight: '600',
+                      fontSize: '13px'
                     }}
                   >
-                    <TrendingUp size={24} />
+                    <TrendingUp size={18} />
                     ACHAT
                   </button>
                   <button
@@ -573,31 +578,33 @@ const Portfolio = () => {
                     onClick={() => setFormData({ ...formData, transaction_type: 'sell' })}
                     style={{
                       flex: 1,
-                      padding: '16px',
+                      padding: '10px',
                       border: `2px solid ${formData.transaction_type === 'sell' ? 'var(--danger)' : 'var(--border-primary)'}`,
-                      borderRadius: '12px',
+                      borderRadius: '8px',
                       background: formData.transaction_type === 'sell' ? 'var(--danger-bg)' : 'transparent',
                       color: formData.transaction_type === 'sell' ? 'var(--danger)' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '8px',
-                      fontWeight: '600'
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontWeight: '600',
+                      fontSize: '13px'
                     }}
                   >
-                    <TrendingDown size={24} />
+                    <TrendingDown size={18} />
                     VENTE
                   </button>
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)' }}>Type d'actif</label>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Type d'actif</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="input-field"
+                  style={{ padding: '10px 12px', fontSize: '14px' }}
                 >
                   <option value="stock">Action</option>
                   <option value="etf">ETF</option>
@@ -606,64 +613,81 @@ const Portfolio = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)' }}>
-                  Symbole {formData.type === 'crypto' && <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(ex: BTC-USD, ETH-USD)</span>}
-                  {formData.type === 'etf' && <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(ex: CW8.PA, CAC.PA, EWLD.PA, SPY)</span>}
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>
+                  Symbole
                 </label>
-                {formData.type === 'etf' && (
+                {(formData.type === 'stock' || formData.type === 'etf') && (
                   <div style={{ 
-                    fontSize: '12px', 
+                    fontSize: '11px', 
                     color: 'var(--text-muted)', 
-                    marginBottom: '12px',
-                    padding: '12px',
+                    marginBottom: '8px',
+                    padding: '8px 10px',
                     background: 'var(--bg-tertiary)',
-                    borderRadius: '8px',
-                    lineHeight: '1.6'
+                    borderRadius: '6px',
+                    lineHeight: '1.5'
                   }}>
-                    <strong style={{ color: 'var(--accent-primary)' }}>Format Yahoo Finance :</strong><br/>
-                    • ETF Paris : ajouter <code style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px' }}>.PA</code> (ex: CW8.PA, CAC.PA, LQQ.PA)<br/>
-                    • ETF Amsterdam : ajouter <code style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px' }}>.AS</code> (ex: IWDA.AS)<br/>
-                    • ETF US : pas de suffixe (ex: SPY, QQQ, VTI)
+                    <strong style={{ color: 'var(--accent-primary)' }}>Place de cotation :</strong>{' '}
+                    <code style={{ background: 'var(--bg-secondary)', padding: '1px 4px', borderRadius: '3px' }}>.PA</code> Paris,{' '}
+                    <code style={{ background: 'var(--bg-secondary)', padding: '1px 4px', borderRadius: '3px' }}>.AS</code> Amsterdam,{' '}
+                    <code style={{ background: 'var(--bg-secondary)', padding: '1px 4px', borderRadius: '3px' }}>.DE</code> Francfort<br/>
+                    <span style={{ color: 'var(--text-muted)' }}>Ex: AIR.PA, CW8.PA, IWDA.AS • US: AAPL, SPY (sans suffixe)</span>
+                  </div>
+                )}
+                {formData.type === 'crypto' && (
+                  <div style={{ 
+                    fontSize: '11px', 
+                    color: 'var(--text-muted)', 
+                    marginBottom: '8px',
+                    padding: '8px 10px',
+                    background: 'var(--bg-tertiary)',
+                    borderRadius: '6px'
+                  }}>
+                    Format : <code style={{ background: 'var(--bg-secondary)', padding: '1px 4px', borderRadius: '3px' }}>SYMBOL-USD</code> (ex: BTC-USD, ETH-USD)
                   </div>
                 )}
                 <input
                   type="text"
-                  placeholder="Ex: AAPL, MSFT, BTC-USD"
+                  placeholder={formData.type === 'crypto' ? 'Ex: BTC-USD' : 'Ex: AAPL, AIR.PA'}
                   value={formData.symbol}
                   onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
                   className="input-field"
+                  style={{ padding: '10px 12px', fontSize: '14px' }}
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)' }}>Quantité</label>
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="Ex: 10"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  className="input-field"
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Quantité</label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="10"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    className="input-field"
+                    style={{ padding: '10px 12px', fontSize: '14px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>
+                    Prix unitaire (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="150.50"
+                    value={formData.avg_price}
+                    onChange={(e) => setFormData({ ...formData, avg_price: e.target.value })}
+                    className="input-field"
+                    style={{ padding: '10px 12px', fontSize: '14px' }}
+                  />
+                </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)' }}>
-                  {formData.transaction_type === 'buy' ? "Prix d'achat unitaire" : "Prix de vente unitaire"}
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="Ex: 150.50"
-                  value={formData.avg_price}
-                  onChange={(e) => setFormData({ ...formData, avg_price: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar size={16} />
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Calendar size={14} />
                   {formData.transaction_type === 'buy' ? "Date d'achat" : "Date de vente"}
                 </label>
                 <input
@@ -672,6 +696,7 @@ const Portfolio = () => {
                   max={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
                   className="input-field"
+                  style={{ padding: '10px 12px', fontSize: '14px' }}
                 />
               </div>
 
