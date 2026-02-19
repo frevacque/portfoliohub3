@@ -192,6 +192,9 @@ async def add_position(position_data: PositionCreate, user_id: str):
     quantity = position_data.quantity
     price = position_data.avg_price
     transaction_type = position_data.transaction_type or "buy"
+    link_to_cash = position_data.link_to_cash
+    cash_currency = position_data.cash_currency or "EUR"
+    transaction_total = quantity * price
     
     # Check if position already exists for this symbol in this portfolio
     existing_position = await db.positions.find_one({
