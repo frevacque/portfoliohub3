@@ -281,6 +281,59 @@ const Portfolio = () => {
         </div>
       </div>
 
+      {/* Cash Accounts Section */}
+      <div className="card" style={{ marginBottom: '24px', padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Wallet size={22} color="var(--accent-primary)" />
+            <h3 className="h3">Soldes Cash</h3>
+          </div>
+          <button 
+            className="btn-secondary" 
+            onClick={() => setShowCashModal(true)}
+            style={{ padding: '8px 16px', fontSize: '13px' }}
+          >
+            <Plus size={16} />
+            Gérer
+          </button>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          {cashAccounts.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+              Aucun compte cash configuré
+            </div>
+          ) : (
+            cashAccounts.map(account => {
+              const currency = CURRENCIES.find(c => c.code === account.currency);
+              return (
+                <div 
+                  key={account.currency}
+                  style={{ 
+                    padding: '16px 24px',
+                    background: 'var(--bg-tertiary)',
+                    borderRadius: '12px',
+                    minWidth: '150px',
+                    textAlign: 'center'
+                  }}
+                >
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    {currency?.label || account.currency}
+                  </div>
+                  <div style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '700', 
+                    color: account.balance >= 0 ? 'var(--success)' : 'var(--danger)' 
+                  }}>
+                    {account.balance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} {currency?.symbol || account.currency}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
       {/* Search Bar */}
       {positions.length > 0 && (
         <div style={{ marginBottom: '24px', position: 'relative' }}>
