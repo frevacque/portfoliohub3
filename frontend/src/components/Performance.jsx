@@ -49,17 +49,24 @@ const Performance = () => {
 
   const fetchData = async () => {
     try {
-      // Get positions
-      const positionsData = await portfolioAPI.getPositions(userId);
+      // Get positions and settings
+      const [positionsData, settingsData] = await Promise.all([
+        portfolioAPI.getPositions(userId),
+        axios.get(`${API}/settings?user_id=${userId}`)
+      ]);
       setPositions(positionsData);
+      
+      // Set benchmark from user settings
+      const userBenchmark = settingsData.data.benchmark_index || '^GSPC';
+      setBenchmarkIndex(userBenchmark);
 
       // Get portfolio performance
       const portfolioPerfData = await axios.get(`${API}/analytics/performance?user_id=${userId}&period=${period}`);
       setPortfolioPerf(portfolioPerfData.data);
 
-      // Get index comparison for YTD
-      if (period === 'ytd' || period === '1y') {
-        const comparisonData = await axios.get(`${API}/analytics/compare-index?user_id=${userId}&period=${period}`);
+      // Get index comparison with user's benchmark
+      if (period === 'ytd' || period === '1y' || period === '6m' || period === '3m' || period === '1m') {
+        const comparisonData = await axios.get(`${API}/analytics/compare-index?user_id=${userId}&period=${period}&index=${userBenchmark}`);
         setIndexComparison(comparisonData.data);
       }
 
@@ -76,6 +83,24 @@ const Performance = () => {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  // Fetch comparison data when benchmark changes
+  const fetchComparison = async (newBenchmark) => {
+    setComparisonLoading(true);
+    try {
+      const comparisonData = await axios.get(`${API}/analytics/compare-index?user_id=${userId}&period=${period}&index=${newBenchmark}`);
+      setIndexComparison(comparisonData.data);
+    } catch (error) {
+      console.error('Error fetching comparison data:', error);
+    } finally {
+      setComparisonLoading(false);
+    }
+  };
+
+  const handleBenchmarkChange = (newBenchmark) => {
+    setBenchmarkIndex(newBenchmark);
+    fetchComparison(newBenchmark);
   };
 
   useEffect(() => {
