@@ -592,7 +592,11 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
 # Analytics
 @api_router.get("/analytics/correlation")
 async def get_correlation_matrix(user_id: str):
-    positions = await db.positions.find({"user_id": user_id}).to_list(1000)
+    # Only get positions with quantity > 0 (current positions, not sold ones)
+    positions = await db.positions.find({
+        "user_id": user_id,
+        "quantity": {"$gt": 0}
+    }).to_list(1000)
     
     if len(positions) < 2:
         return []
