@@ -746,7 +746,11 @@ async def compare_with_index(user_id: str, period: str = 'ytd', index: str = '^G
 @api_router.get("/analytics/sector-distribution")
 async def get_sector_distribution(user_id: str):
     """Get sector distribution of portfolio"""
-    positions = await db.positions.find({"user_id": user_id}).to_list(1000)
+    # Only current positions
+    positions = await db.positions.find({
+        "user_id": user_id,
+        "quantity": {"$gt": 0}
+    }).to_list(1000)
     
     if not positions:
         return []
