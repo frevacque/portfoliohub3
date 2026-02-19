@@ -28,12 +28,14 @@ class UserResponse(BaseModel):
 # Position Models
 class PositionCreate(BaseModel):
     symbol: str
-    type: str  # "stock" or "crypto"
+    type: str  # "stock", "etf" or "crypto"
     transaction_type: str = "buy"  # "buy" or "sell"
     quantity: float
     avg_price: float
     purchase_date: Optional[datetime] = None
     portfolio_id: Optional[str] = None
+    link_to_cash: bool = False  # Link transaction to cash balance
+    cash_currency: Optional[str] = None  # Currency for cash operation (EUR, USD, etc.)
 
 class Position(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
