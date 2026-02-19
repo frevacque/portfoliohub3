@@ -705,7 +705,9 @@ const Portfolio = () => {
                 onClick={handleAddPosition} 
                 style={{ 
                   width: '100%', 
-                  marginTop: '8px',
+                  marginTop: '4px',
+                  padding: '12px',
+                  fontSize: '14px',
                   background: formData.transaction_type === 'sell' ? 'var(--danger)' : undefined,
                   borderColor: formData.transaction_type === 'sell' ? 'var(--danger)' : undefined
                 }}
@@ -713,7 +715,7 @@ const Portfolio = () => {
               >
                 {submitting ? 'En cours...' : (
                   <>
-                    {formData.transaction_type === 'buy' ? <Plus size={20} /> : <TrendingDown size={20} />}
+                    {formData.transaction_type === 'buy' ? <Plus size={18} /> : <TrendingDown size={18} />}
                     {formData.transaction_type === 'buy' ? 'Acheter' : 'Vendre'}
                   </>
                 )}
