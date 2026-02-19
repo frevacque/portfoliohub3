@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Activity, Target, BarChart3, AlertCircle, RefreshCw, Settings, Calendar, Percent, X, Bell, CheckCircle, Briefcase } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Target, BarChart3, AlertCircle, RefreshCw, Settings, Calendar, Percent, X, Bell, CheckCircle, Briefcase, LineChart } from 'lucide-react';
 import { portfolioAPI, analyticsAPI, storage, portfoliosAPI } from '../api';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Benchmarks prédéfinis
+const PRESET_BENCHMARKS = [
+  { value: '^FCHI', label: 'CAC 40', description: 'France' },
+  { value: '^GSPC', label: 'S&P 500', description: 'USA' },
+  { value: 'URTH', label: 'MSCI World', description: 'Global' },
+  { value: '^STOXX50E', label: 'Euro Stoxx 50', description: 'Europe' },
+  { value: '^NDX', label: 'Nasdaq 100', description: 'USA Tech' },
+];
 
 const Dashboard = () => {
   const [portfolio, setPortfolio] = useState(null);
@@ -17,6 +26,9 @@ const Dashboard = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [riskFreeRate, setRiskFreeRate] = useState(3.0);
   const [tempRFR, setTempRFR] = useState(3.0);
+  const [benchmarkIndex, setBenchmarkIndex] = useState('^GSPC');
+  const [tempBenchmark, setTempBenchmark] = useState('^GSPC');
+  const [customBenchmark, setCustomBenchmark] = useState('');
   const [activePortfolio, setActivePortfolio] = useState(null);
 
   const userId = storage.getUserId();
