@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ZAxis } from 'recharts';
-import { TrendingUp, PieChart as PieIcon, Target, Bell, DollarSign, FileText, RefreshCw } from 'lucide-react';
+import { TrendingUp, PieChart as PieIcon, Target, Bell, DollarSign, FileText, RefreshCw, LineChart } from 'lucide-react';
 import { portfolioAPI, storage } from '../api';
 import axios from 'axios';
 
@@ -8,6 +8,15 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const COLORS = ['#DAFF01', '#22C55E', '#3B82F6', '#8B5CF6', '#EF4444', '#F59E0B', '#EC4899', '#10B981'];
+
+// Benchmarks prédéfinis (same as Dashboard)
+const PRESET_BENCHMARKS = [
+  { value: '^FCHI', label: 'CAC 40' },
+  { value: '^GSPC', label: 'S&P 500' },
+  { value: 'URTH', label: 'MSCI World' },
+  { value: '^STOXX50E', label: 'Euro Stoxx 50' },
+  { value: '^NDX', label: 'Nasdaq 100' },
+];
 
 const Analytics = () => {
   const [sectorData, setSectorData] = useState([]);
@@ -18,6 +27,7 @@ const Analytics = () => {
   const [budget, setBudget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('sectors');
+  const [benchmarkIndex, setBenchmarkIndex] = useState('^GSPC');
 
   const userId = storage.getUserId();
 
