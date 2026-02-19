@@ -1130,7 +1130,7 @@ async def delete_portfolio(portfolio_id: str, user_id: str):
 # User Settings endpoints
 @api_router.get("/settings")
 async def get_user_settings(user_id: str):
-    """Get user settings including risk-free rate"""
+    """Get user settings including risk-free rate and benchmark"""
     settings = await db.user_settings.find_one({"user_id": user_id})
     if not settings:
         # Create default settings
@@ -1138,11 +1138,13 @@ async def get_user_settings(user_id: str):
         await db.user_settings.insert_one(default_settings.dict())
         return {
             "risk_free_rate": default_settings.risk_free_rate,
+            "benchmark_index": default_settings.benchmark_index,
             "updated_at": default_settings.updated_at.isoformat()
         }
     
     return {
-        "risk_free_rate": settings['risk_free_rate'],
+        "risk_free_rate": settings.get('risk_free_rate', 3.0),
+        "benchmark_index": settings.get('benchmark_index', '^GSPC'),
         "updated_at": settings['updated_at'].isoformat() if hasattr(settings['updated_at'], 'isoformat') else settings['updated_at']
     }
 
@@ -1154,6 +1156,8 @@ async def update_user_settings(settings_data: UserSettingsUpdate, user_id: str):
     update_data = {"updated_at": datetime.utcnow()}
     if settings_data.risk_free_rate is not None:
         update_data["risk_free_rate"] = settings_data.risk_free_rate
+    if settings_data.benchmark_index is not None:
+        update_data["benchmark_index"] = settings_data.benchmark_index
     
     if existing:
         await db.user_settings.update_one(
@@ -1163,11 +1167,16 @@ async def update_user_settings(settings_data: UserSettingsUpdate, user_id: str):
     else:
         new_settings = UserSettings(
             user_id=user_id,
-            risk_free_rate=settings_data.risk_free_rate or 3.0
+            risk_free_rate=settings_data.risk_free_rate or 3.0,
+            benchmark_index=settings_data.benchmark_index or "^GSPC"
         )
         await db.user_settings.insert_one(new_settings.dict())
     
-    return {"message": "Paramètres mis à jour", "risk_free_rate": settings_data.risk_free_rate}
+    return {
+        "message": "Paramètres mis à jour", 
+        "risk_free_rate": settings_data.risk_free_rate,
+        "benchmark_index": settings_data.benchmark_index
+    }
 
 # Cash Management endpoints
 @api_router.get("/cash/balance")
