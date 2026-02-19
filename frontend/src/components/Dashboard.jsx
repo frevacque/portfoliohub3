@@ -108,15 +108,20 @@ const Dashboard = () => {
     fetchData();
   };
 
-  const handleSaveRFR = async () => {
+  const handleSaveSettings = async () => {
     try {
-      await axios.put(`${API}/settings?user_id=${userId}`, { risk_free_rate: tempRFR });
+      const benchmarkToSave = customBenchmark || tempBenchmark;
+      await axios.put(`${API}/settings?user_id=${userId}`, { 
+        risk_free_rate: tempRFR,
+        benchmark_index: benchmarkToSave
+      });
       setRiskFreeRate(tempRFR);
+      setBenchmarkIndex(benchmarkToSave);
       setShowSettingsModal(false);
-      // Refresh to recalculate Sharpe ratio
+      // Refresh to recalculate metrics
       handleRefresh();
     } catch (error) {
-      console.error('Error saving RFR:', error);
+      console.error('Error saving settings:', error);
     }
   };
 
