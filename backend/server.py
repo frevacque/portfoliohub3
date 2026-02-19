@@ -522,6 +522,7 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
         "beta": beta,
         "sharpe_ratio": sharpe_ratio,
         "risk_free_rate": risk_free_rate,
+        "benchmark_index": benchmark_index,
         "holding_period_days": holding_period_days,
         "first_purchase_date": earliest_purchase_date.isoformat() if earliest_purchase_date else None
     }
