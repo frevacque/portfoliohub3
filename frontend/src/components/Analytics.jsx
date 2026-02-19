@@ -37,13 +37,14 @@ const Analytics = () => {
 
   const fetchData = async () => {
     try {
-      const [positionsData, sectorDistribution, dividendsData, alertsData, goalsData, budgetData] = await Promise.all([
+      const [positionsData, sectorDistribution, dividendsData, alertsData, goalsData, budgetData, settingsData] = await Promise.all([
         portfolioAPI.getPositions(userId),
         axios.get(`${API}/analytics/sector-distribution?user_id=${userId}`),
         axios.get(`${API}/dividends?user_id=${userId}`),
         axios.get(`${API}/alerts?user_id=${userId}`),
         axios.get(`${API}/goals?user_id=${userId}`),
-        axios.get(`${API}/budget?user_id=${userId}`)
+        axios.get(`${API}/budget?user_id=${userId}`),
+        axios.get(`${API}/settings?user_id=${userId}`)
       ]);
 
       setPositions(positionsData);
@@ -52,6 +53,7 @@ const Analytics = () => {
       setAlerts(alertsData.data);
       setGoals(goalsData.data);
       setBudget(budgetData.data);
+      setBenchmarkIndex(settingsData.data.benchmark_index || '^GSPC');
     } catch (error) {
       console.error('Error fetching analytics data:', error);
     } finally {
