@@ -70,14 +70,22 @@ class PortfolioAnalytics:
                     if isinstance(purchase_date, str):
                         purchase_date = datetime.fromisoformat(purchase_date.replace('Z', '+00:00'))
                     
+                    # Make timezone naive
+                    if hasattr(purchase_date, 'tzinfo') and purchase_date.tzinfo is not None:
+                        purchase_date = purchase_date.replace(tzinfo=None)
+                    
                     # Calculate days since purchase
-                    days_held = (datetime.utcnow() - purchase_date.replace(tzinfo=None)).days
+                    days_held = (datetime.utcnow() - purchase_date).days
                     if days_held < 2:
                         continue  # Need at least 2 days of data
                     
-                    # Get historical data since purchase date
-                    period = f'{days_held}d'
-                    hist_data = self.yf_service.get_historical_data(position['symbol'], period)
+                    # Get historical data since purchase date using start/end dates
+                    # yfinance doesn't accept arbitrary "{days}d" format
+                    hist_data = self.yf_service.get_historical_data_by_dates(
+                        position['symbol'], 
+                        start_date=purchase_date,
+                        end_date=datetime.utcnow()
+                    )
                     
                     if hist_data is not None and len(hist_data) >= 2:
                         returns = self.yf_service.calculate_returns(hist_data['Close'])
