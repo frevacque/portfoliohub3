@@ -261,33 +261,36 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Montant Investi */}
+          {/* Capital Versé (ou Montant Investi si pas de versements) */}
           <div>
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Capital Investi</div>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              {portfolio.net_capital > 0 ? 'Capital Versé' : 'Capital Investi'}
+            </div>
             <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--text-secondary)' }}>
-              {formatCurrency(portfolio.total_invested)}
+              {formatCurrency(portfolio.net_capital > 0 ? portfolio.net_capital : portfolio.total_invested)}
             </div>
           </div>
           
-          {/* Gain/Perte Absolue */}
+          {/* Gain/Perte Absolue basé sur le capital versé */}
           <div>
             <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Gain/Perte Total</div>
             <div style={{ 
               fontSize: '36px', 
               fontWeight: '700', 
-              color: portfolio.total_gain_loss >= 0 ? 'var(--success)' : 'var(--danger)' 
+              color: (portfolio.net_capital > 0 ? portfolio.capital_gain_loss : portfolio.total_gain_loss) >= 0 ? 'var(--success)' : 'var(--danger)' 
             }}>
-              {portfolio.total_gain_loss >= 0 ? '+' : ''}{formatCurrency(portfolio.total_gain_loss)}
+              {(portfolio.net_capital > 0 ? portfolio.capital_gain_loss : portfolio.total_gain_loss) >= 0 ? '+' : ''}
+              {formatCurrency(portfolio.net_capital > 0 ? portfolio.capital_gain_loss : portfolio.total_gain_loss)}
             </div>
           </div>
           
-          {/* Performance % */}
+          {/* Performance % basée sur le capital versé */}
           <div>
             <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>Performance</div>
             <div style={{ 
               fontSize: '36px', 
               fontWeight: '700', 
-              color: portfolio.gain_loss_percent >= 0 ? 'var(--success)' : 'var(--danger)',
+              color: (portfolio.net_capital > 0 ? portfolio.capital_performance_percent : portfolio.gain_loss_percent) >= 0 ? 'var(--success)' : 'var(--danger)',
               display: 'flex',
               alignItems: 'center',
               gap: '8px'
