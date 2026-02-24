@@ -1391,10 +1391,12 @@ const CashManagementModal = ({ cashAccounts, setCashAccounts, userId, portfolioI
 };
 
 // Capital Modal Component
-const CapitalModal = ({ mode, capitalData, setCapitalData, userId, onClose, fetchData }) => {
+const CapitalModal = ({ mode, capitalData, setCapitalData, userId, portfolioId, onClose, fetchData }) => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const portfolioIdParam = portfolioId ? `&portfolio_id=${portfolioId}` : '';
 
   const handleAddCapital = async (type) => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -1403,7 +1405,7 @@ const CapitalModal = ({ mode, capitalData, setCapitalData, userId, onClose, fetc
     }
     setLoading(true);
     try {
-      await axios.post(`${API}/capital?user_id=${userId}&type=${type}&amount=${parseFloat(amount)}&description=${encodeURIComponent(description)}`);
+      await axios.post(`${API}/capital?user_id=${userId}&type=${type}&amount=${parseFloat(amount)}${portfolioIdParam}&description=${encodeURIComponent(description)}`);
       await fetchData();
       setAmount('');
       setDescription('');
