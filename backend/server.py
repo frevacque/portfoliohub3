@@ -136,10 +136,12 @@ async def get_positions(user_id: str, portfolio_id: Optional[str] = None):
         # Create clean position dict without MongoDB _id
         clean_pos = {k: v for k, v in pos.items() if k != '_id'}
         # Convert datetime objects to ISO strings
-        if 'created_at' in clean_pos:
+        if 'created_at' in clean_pos and hasattr(clean_pos['created_at'], 'isoformat'):
             clean_pos['created_at'] = clean_pos['created_at'].isoformat()
-        if 'updated_at' in clean_pos:
+        if 'updated_at' in clean_pos and hasattr(clean_pos['updated_at'], 'isoformat'):
             clean_pos['updated_at'] = clean_pos['updated_at'].isoformat()
+        if 'purchase_date' in clean_pos and hasattr(clean_pos['purchase_date'], 'isoformat'):
+            clean_pos['purchase_date'] = clean_pos['purchase_date'].isoformat()
         
         enriched_positions.append({
             **clean_pos,
