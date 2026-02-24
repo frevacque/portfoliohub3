@@ -1102,6 +1102,7 @@ const Portfolio = () => {
           cashAccounts={cashAccounts}
           setCashAccounts={setCashAccounts}
           userId={userId}
+          portfolioId={activePortfolio?.id}
           onClose={() => setShowCashModal(false)}
         />
       )}
@@ -1113,6 +1114,7 @@ const Portfolio = () => {
           capitalData={capitalData}
           setCapitalData={setCapitalData}
           userId={userId}
+          portfolioId={activePortfolio?.id}
           onClose={() => setShowCapitalModal(false)}
           fetchData={fetchData}
         />
