@@ -350,6 +350,7 @@ const Portfolio = () => {
               className="btn-primary" 
               onClick={() => setShowCapitalModal('deposit')}
               style={{ padding: '8px 16px', fontSize: '13px' }}
+              data-testid="capital-deposit-btn"
             >
               <Plus size={16} />
               Ajout
@@ -358,6 +359,7 @@ const Portfolio = () => {
               className="btn-secondary" 
               onClick={() => setShowCapitalModal('withdrawal')}
               style={{ padding: '8px 16px', fontSize: '13px', color: 'var(--danger)', borderColor: 'var(--danger)' }}
+              data-testid="capital-withdrawal-btn"
             >
               <TrendingDown size={16} />
               Retrait
