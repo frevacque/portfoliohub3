@@ -264,7 +264,16 @@ const Dashboard = () => {
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                 {portfolio.positions_value > 0 && <span>Positions: {formatCurrency(portfolio.positions_value)}</span>}
                 {portfolio.positions_value > 0 && portfolio.cash_value > 0 && <span> • </span>}
-                {portfolio.cash_value > 0 && <span style={{ color: 'var(--accent-primary)' }}>Cash: {formatCurrency(portfolio.cash_value)}</span>}
+                {portfolio.cash_value > 0 && (
+                  <span style={{ color: 'var(--accent-primary)' }}>
+                    Cash: {formatCurrency(portfolio.cash_value)}
+                    {portfolio.cash_details && portfolio.cash_details.length > 1 && (
+                      <span style={{ fontSize: '10px', marginLeft: '4px' }}>
+                        ({portfolio.cash_details.map(c => `${c.balance.toLocaleString('fr-FR')} ${c.currency}`).join(' + ')})
+                      </span>
+                    )}
+                  </span>
+                )}
               </div>
             )}
           </div>
