@@ -86,83 +86,8 @@ const Tools = () => {
     }
   };
 
-  const parseCSVFile = (text) => {
-    const lines = text.split('\n').filter(l => l.trim());
-    const result = [];
-    let headers = null;
-    
-    for (let i = 0; i < lines.length; i++) {
-      const vals = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-      
-      if (!headers) {
-        const lower = lines[i].toLowerCase();
-        if (lower.includes('symbol') || lower.includes('symbole')) {
-          headers = vals.map(h => h.toLowerCase());
-          continue;
-        }
-      }
-      
-      if (headers && vals.length >= 2) {
-        const sIdx = headers.findIndex(h => h.includes('symbol') || h.includes('symbole'));
-        const qIdx = headers.findIndex(h => h.includes('quant'));
-        const pIdx = headers.findIndex(h => h.includes('prix') || h.includes('price'));
-        
-        if (sIdx >= 0 && qIdx >= 0 && pIdx >= 0 && vals[sIdx] && vals[qIdx] && vals[pIdx]) {
-          result.push({
-            symbol: vals[sIdx],
-            quantity: vals[qIdx],
-            avg_price: vals[pIdx],
-            type: 'stock'
-          });
-        }
-      }
-    }
-    return result;
-  };
-
-  const handleImportCSV = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    try {
-      setLoading(true);
-      setImportResult(null);
-      const text = await file.text();
-      const positions = parseCSVFile(text);
-      
-      if (positions.length === 0) {
-        setImportResult({
-          success: false,
-          message: 'Aucune position valide trouvée. Colonnes requises: Symbole, Quantité, Prix'
-        });
-        return;
-      }
-      
-      const response = await axios.post(`${API}/import/csv?user_id=${userId}`, positions);
-      setImportResult({
-        success: true,
-        message: response.data.message,
-        errors: response.data.errors
-      });
-      
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      
-    } catch (error) {
-      console.error('Error importing CSV:', error);
-      setImportResult({
-        success: false,
-        message: 'Erreur lors de l\'import: ' + (error.response?.data?.detail || error.message)
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const tabs = [
-    { value: 'export', label: 'Export/Import', icon: Download },
-    { value: 'budget', label: 'Budget', icon: DollarSign },
+    { value: 'export', label: 'Export', icon: Download },
     { value: 'simulation', label: 'Simulation', icon: Target }
   ];
 
