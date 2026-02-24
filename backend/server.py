@@ -13,14 +13,14 @@ from models import (
     UserCreate, UserLogin, User, UserResponse,
     PositionCreate, Position, PositionWithMetrics,
     TransactionCreate, Transaction,
-    PortfolioSummary, CorrelationItem, Recommendation,
+    PortfolioCreate, Portfolio, PortfolioSummary,
+    CorrelationItem, Recommendation,
     PerformanceResponse, DividendCreate, Dividend,
     AlertCreate, Alert, GoalCreate, Goal,
     NoteCreate, Note, BudgetCreate, Budget,
     CashTransactionCreate, CashTransaction, CashBalance,
     UserSettingsUpdate, UserSettings
 )
-from models_portfolio import PortfolioCreate, Portfolio
 from utils.yahoo_finance import YahooFinanceService
 from utils.portfolio_analytics import PortfolioAnalytics
 from utils.performance_service import PerformanceService
