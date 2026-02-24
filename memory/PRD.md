@@ -46,6 +46,14 @@ Application de gestion de portefeuille financier permettant de suivre et analyse
 
 ## What's Been Implemented
 
+### Session 25/02/2026
+1. ✅ **Correction Bug P0 - Graphiques de performance avec crypto**
+   - **Problème**: L'ajout de cryptomonnaies (ex: BTC-EUR) cassait les graphiques de performance, provoquant des chutes brutales à zéro
+   - **Cause**: Mauvais alignement temporel entre crypto (trading 24/7) et actions (jours ouvrés uniquement)
+   - **Solution**: Utilisation de pandas DataFrame avec forward-fill pour aligner correctement les séries temporelles
+   - **Fichier modifié**: `/app/backend/utils/performance_service.py`
+   - **Tests**: 24 tests passent, validation complète sur toutes les périodes (1m, 3m, 6m, 1y, ytd, all)
+
 ### Session 12/02/2026
 1. ✅ **Correction Bug P0 - Incohérence des données**
    - Dashboard et page Positions utilisent maintenant le même `portfolio_id` actif
