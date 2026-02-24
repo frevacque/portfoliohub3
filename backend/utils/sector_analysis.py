@@ -36,9 +36,22 @@ class SectorAnalysisService:
         for position in positions:
             if position['type'] == 'crypto':
                 sector = 'Cryptocurrency'
+            elif position['type'] == 'etf':
+                # ETFs don't have a single sector, display as "ETF (ticker)"
+                sector = f"ETF ({position['symbol']})"
             else:
                 sector_info = SectorAnalysisService.get_sector_info(position['symbol'])
                 sector = sector_info['sector']
+                # If sector is Unknown for a stock, it might be an ETF or special asset
+                if sector == 'Unknown':
+                    # Check if it's actually an ETF by looking at quoteType
+                    try:
+                        ticker = yf.Ticker(position['symbol'])
+                        quote_type = ticker.info.get('quoteType', '')
+                        if quote_type == 'ETF':
+                            sector = f"ETF ({position['symbol']})"
+                    except:
+                        pass
             
             if sector not in sector_values:
                 sector_values[sector] = 0
