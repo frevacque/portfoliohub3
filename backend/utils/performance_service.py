@@ -21,6 +21,9 @@ class PerformanceService:
         """
         Calculate portfolio performance over time
         period: 'all', 'ytd', '1m', '3m', '6m', '1y'
+        
+        IMPORTANT: This method handles mixed asset types (stocks, ETFs, crypto)
+        with different trading schedules by using forward-fill alignment.
         """
         try:
             if not positions:
@@ -43,56 +46,81 @@ class PerformanceService:
                 purchase_dates = [p.get('purchase_date', datetime.now()) for p in positions]
                 start_date = min(purchase_dates) if purchase_dates else end_date - timedelta(days=365)
             
-            # Get historical data for all positions
-            portfolio_values = {}
+            # Collect historical data for all positions into separate series
+            position_series = {}
             
             for position in positions:
-                hist_data = self.yf_service.get_historical_data(
-                    position['symbol'], 
-                    period='2y'  # Get enough data
-                )
+                symbol = position['symbol']
+                hist_data = self.yf_service.get_historical_data(symbol, period='2y')
                 
                 if hist_data is None or hist_data.empty:
+                    logger.warning(f"No historical data for {symbol}, skipping")
                     continue
                 
-                # Filter by date range - make dates timezone naive for comparison
-                hist_data.index = hist_data.index.tz_localize(None)
+                # Make dates timezone naive for comparison
+                if hist_data.index.tz is not None:
+                    hist_data.index = hist_data.index.tz_localize(None)
+                
+                # Filter by date range
                 hist_data = hist_data[hist_data.index >= start_date]
                 
-                # Calculate position value over time
+                if hist_data.empty:
+                    logger.warning(f"No data for {symbol} in the selected period")
+                    continue
+                
+                # Calculate position value over time (price * quantity)
                 quantity = position['quantity']
-                for date, row in hist_data.iterrows():
-                    date_str = date.strftime('%Y-%m-%d')
-                    position_value = row['Close'] * quantity
-                    
-                    if date_str not in portfolio_values:
-                        portfolio_values[date_str] = 0
-                    portfolio_values[date_str] += position_value
+                position_values = hist_data['Close'] * quantity
+                position_series[symbol] = position_values
             
-            if not portfolio_values:
+            if not position_series:
                 return {'data': [], 'total_return': 0, 'total_return_percent': 0}
             
+            # Create a DataFrame with all position values
+            # This aligns all series to a common date index automatically
+            df = pd.DataFrame(position_series)
+            
             # Sort by date
-            sorted_dates = sorted(portfolio_values.keys())
+            df = df.sort_index()
             
-            # Calculate returns
+            # Forward-fill missing values (handles crypto vs stock trading days mismatch)
+            # This ensures that if BTC has data for Saturday but AAPL doesn't,
+            # AAPL's Friday close value is carried forward to Saturday
+            df = df.ffill()
+            
+            # Also backward-fill for the first few days if some positions started later
+            df = df.bfill()
+            
+            # Drop any remaining rows with NaN (edge cases)
+            df = df.dropna()
+            
+            if df.empty:
+                return {'data': [], 'total_return': 0, 'total_return_percent': 0}
+            
+            # Calculate total portfolio value per day
+            df['total_value'] = df.sum(axis=1)
+            
+            # Calculate performance metrics
+            initial_value = df['total_value'].iloc[0]
+            
+            if initial_value <= 0:
+                return {'data': [], 'total_return': 0, 'total_return_percent': 0}
+            
             performance_data = []
-            initial_value = portfolio_values[sorted_dates[0]]
-            
-            for i, date in enumerate(sorted_dates):
-                value = portfolio_values[date]
-                change_percent = ((value - initial_value) / initial_value * 100) if initial_value > 0 else 0
+            for date, row in df.iterrows():
+                value = row['total_value']
+                change_percent = ((value - initial_value) / initial_value * 100)
                 
                 performance_data.append({
-                    'date': date,
+                    'date': date.strftime('%Y-%m-%d'),
                     'value': round(value, 2),
                     'change_percent': round(change_percent, 2)
                 })
             
             # Calculate total return
-            final_value = portfolio_values[sorted_dates[-1]]
+            final_value = df['total_value'].iloc[-1]
             total_return = final_value - initial_value
-            total_return_percent = ((final_value - initial_value) / initial_value * 100) if initial_value > 0 else 0
+            total_return_percent = ((final_value - initial_value) / initial_value * 100)
             
             return {
                 'data': performance_data,
@@ -102,6 +130,8 @@ class PerformanceService:
             
         except Exception as e:
             logger.error(f"Error calculating portfolio performance: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return {'data': [], 'total_return': 0, 'total_return_percent': 0}
     
     def calculate_position_performance(
