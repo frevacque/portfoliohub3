@@ -579,8 +579,12 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
             earliest_purchase_date = earliest_purchase_date.replace(tzinfo=None)
         holding_period_days = (datetime.utcnow() - earliest_purchase_date).days
     
-    # Get capital contributions for performance calculation
-    contributions = await db.capital_contributions.find({"user_id": user_id}).to_list(1000)
+    # Get capital contributions for this specific portfolio
+    capital_query = {"user_id": user_id}
+    if portfolio_id:
+        capital_query["portfolio_id"] = portfolio_id
+    
+    contributions = await db.capital_contributions.find(capital_query).to_list(1000)
     total_deposits = sum(c['amount'] for c in contributions if c['type'] == 'deposit')
     total_withdrawals = sum(c['amount'] for c in contributions if c['type'] == 'withdrawal')
     net_capital = total_deposits - total_withdrawals
@@ -605,7 +609,8 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
         "first_purchase_date": earliest_purchase_date.isoformat() if earliest_purchase_date else None,
         "net_capital": round(net_capital, 2),
         "capital_gain_loss": round(capital_gain_loss, 2),
-        "capital_performance_percent": round(capital_performance_percent, 2)
+        "capital_performance_percent": round(capital_performance_percent, 2),
+        "portfolio_id": portfolio_id
     }
 
 # Analytics
