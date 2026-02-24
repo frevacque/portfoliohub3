@@ -504,8 +504,29 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
     benchmark_index = user_settings.get('benchmark_index', '^GSPC') if user_settings else '^GSPC'
     
     if not positions:
+        # Still need to check for cash even if no positions
+        cash_query = {"user_id": user_id}
+        if portfolio_id:
+            cash_query["portfolio_id"] = portfolio_id
+        cash_accounts = await db.cash_accounts.find(cash_query).to_list(100)
+        total_cash = sum(acc.get('balance', 0) for acc in cash_accounts)
+        
+        # Get capital contributions
+        capital_query = {"user_id": user_id}
+        if portfolio_id:
+            capital_query["portfolio_id"] = portfolio_id
+        contributions = await db.capital_contributions.find(capital_query).to_list(1000)
+        total_deposits = sum(c['amount'] for c in contributions if c['type'] == 'deposit')
+        total_withdrawals = sum(c['amount'] for c in contributions if c['type'] == 'withdrawal')
+        net_capital = total_deposits - total_withdrawals
+        
+        capital_gain_loss = total_cash - net_capital if net_capital > 0 else 0
+        capital_performance_percent = (capital_gain_loss / net_capital * 100) if net_capital > 0 else 0
+        
         return {
-            "total_value": 0,
+            "total_value": round(total_cash, 2),
+            "positions_value": 0,
+            "cash_value": round(total_cash, 2),
             "total_invested": 0,
             "total_gain_loss": 0,
             "gain_loss_percent": 0,
@@ -517,7 +538,11 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
             "risk_free_rate": risk_free_rate,
             "benchmark_index": benchmark_index,
             "holding_period_days": 0,
-            "first_purchase_date": None
+            "first_purchase_date": None,
+            "net_capital": round(net_capital, 2),
+            "capital_gain_loss": round(capital_gain_loss, 2),
+            "capital_performance_percent": round(capital_performance_percent, 2),
+            "portfolio_id": portfolio_id
         }
     
     # Calculate portfolio metrics
