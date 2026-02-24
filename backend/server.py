@@ -650,7 +650,8 @@ async def get_portfolio_summary(user_id: str, portfolio_id: Optional[str] = None
     return {
         "total_value": round(total_value_with_cash, 2),
         "positions_value": round(total_value, 2),
-        "cash_value": round(total_cash, 2),
+        "cash_value": round(total_cash_eur, 2),
+        "cash_details": cash_details,
         "total_invested": round(total_invested, 2),
         "total_gain_loss": round(total_gain_loss, 2),
         "gain_loss_percent": round(gain_loss_percent, 2),
