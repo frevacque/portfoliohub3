@@ -110,6 +110,24 @@ class YahooFinanceService:
             return None
     
     @staticmethod
+    def get_historical_data_by_dates(symbol: str, start_date: datetime, end_date: datetime = None) -> Optional[pd.DataFrame]:
+        """Get historical data for a symbol between specific dates"""
+        try:
+            ticker = yf.Ticker(symbol)
+            if end_date is None:
+                end_date = datetime.now()
+            
+            # Format dates for yfinance
+            start_str = start_date.strftime('%Y-%m-%d')
+            end_str = end_date.strftime('%Y-%m-%d')
+            
+            data = ticker.history(start=start_str, end=end_str)
+            return data
+        except Exception as e:
+            logger.error(f"Error fetching historical data for {symbol} ({start_date} to {end_date}): {str(e)}")
+            return None
+    
+    @staticmethod
     def calculate_returns(prices: pd.Series) -> pd.Series:
         """Calculate returns from prices"""
         return prices.pct_change().dropna()
