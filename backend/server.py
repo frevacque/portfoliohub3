@@ -1309,11 +1309,21 @@ async def update_user_settings(settings_data: UserSettingsUpdate, user_id: str):
         "benchmark_index": settings_data.benchmark_index
     }
 
-# Capital Contributions (Versements) endpoints
+# Capital Contributions (Versements) endpoints - Now portfolio-specific
 @api_router.get("/capital")
-async def get_capital_summary(user_id: str):
-    """Get total capital contributions (deposits - withdrawals)"""
-    contributions = await db.capital_contributions.find({"user_id": user_id}).sort("date", -1).to_list(1000)
+async def get_capital_summary(user_id: str, portfolio_id: Optional[str] = None):
+    """Get total capital contributions (deposits - withdrawals) for a specific portfolio"""
+    # Build query - portfolio_id is required for accurate data
+    query = {"user_id": user_id}
+    if portfolio_id:
+        query["portfolio_id"] = portfolio_id
+    else:
+        # Get default portfolio if not specified
+        default_portfolio = await db.portfolios.find_one({"user_id": user_id, "is_default": True})
+        if default_portfolio:
+            query["portfolio_id"] = default_portfolio['id']
+    
+    contributions = await db.capital_contributions.find(query).sort("date", -1).to_list(1000)
     
     total_deposits = sum(c['amount'] for c in contributions if c['type'] == 'deposit')
     total_withdrawals = sum(c['amount'] for c in contributions if c['type'] == 'withdrawal')
@@ -1325,28 +1335,41 @@ async def get_capital_summary(user_id: str):
         "type": c.get("type"),
         "amount": c.get("amount"),
         "description": c.get("description", ""),
-        "date": c.get("date").isoformat() if hasattr(c.get("date"), 'isoformat') else c.get("date")
+        "date": c.get("date").isoformat() if hasattr(c.get("date"), 'isoformat') else c.get("date"),
+        "portfolio_id": c.get("portfolio_id")
     } for c in contributions]
     
     return {
         "total_deposits": round(total_deposits, 2),
         "total_withdrawals": round(total_withdrawals, 2),
         "net_capital": round(net_capital, 2),
-        "contributions": clean_contributions
+        "contributions": clean_contributions,
+        "portfolio_id": query.get("portfolio_id")
     }
 
 @api_router.post("/capital")
-async def add_capital_contribution(user_id: str, type: str, amount: float, description: str = ""):
-    """Add a capital contribution (deposit or withdrawal)"""
+async def add_capital_contribution(user_id: str, type: str, amount: float, portfolio_id: Optional[str] = None, description: str = ""):
+    """Add a capital contribution (deposit or withdrawal) for a specific portfolio"""
     if type not in ["deposit", "withdrawal"]:
         raise HTTPException(status_code=400, detail="Type doit être 'deposit' ou 'withdrawal'")
     
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Le montant doit être positif")
     
+    # Get portfolio_id if not provided
+    if not portfolio_id:
+        default_portfolio = await db.portfolios.find_one({"user_id": user_id, "is_default": True})
+        if default_portfolio:
+            portfolio_id = default_portfolio['id']
+        else:
+            first_portfolio = await db.portfolios.find_one({"user_id": user_id})
+            if first_portfolio:
+                portfolio_id = first_portfolio['id']
+    
     contribution = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
+        "portfolio_id": portfolio_id,
         "type": type,
         "amount": amount,
         "description": description,
@@ -1356,8 +1379,8 @@ async def add_capital_contribution(user_id: str, type: str, amount: float, descr
     
     await db.capital_contributions.insert_one(contribution)
     
-    # Recalculate totals
-    contributions = await db.capital_contributions.find({"user_id": user_id}).to_list(1000)
+    # Recalculate totals for this portfolio
+    contributions = await db.capital_contributions.find({"user_id": user_id, "portfolio_id": portfolio_id}).to_list(1000)
     total_deposits = sum(c['amount'] for c in contributions if c['type'] == 'deposit')
     total_withdrawals = sum(c['amount'] for c in contributions if c['type'] == 'withdrawal')
     net_capital = total_deposits - total_withdrawals
@@ -1365,6 +1388,7 @@ async def add_capital_contribution(user_id: str, type: str, amount: float, descr
     return {
         "message": "Versement ajouté" if type == "deposit" else "Retrait ajouté",
         "id": contribution["id"],
+        "portfolio_id": portfolio_id,
         "net_capital": round(net_capital, 2)
     }
 
