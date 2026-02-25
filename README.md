@@ -1,57 +1,45 @@
 # PortfolioHub
 
-Application de gestion de portefeuille financier.
+> Votre gestionnaire de portefeuille personnel — gratuit, complet et 100% privé.
 
-## Prérequis
+PortfolioHub tourne entièrement sur votre machine. Aucun compte, aucun abonnement, aucune donnée transmise. Suivez vos positions en temps réel, analysez votre risque et comparez vos performances aux grands indices — tout en gardant le contrôle total de vos données financières.
 
-- Python 3.9+
-- Node.js 18+
-- MongoDB
+---
+
+## Fonctionnalités
+
+- **Suivi en temps réel** — cours actualisés, gain/perte par position
+- **Analyse du risque** — bêta, ratio de Sharpe, volatilité, matrice de corrélation
+- **Benchmarking** — comparaison vs CAC 40, S&P 500, MSCI World, Nasdaq 100
+- **Multi-portefeuilles** — PEA, CTO, crypto, chaque compte dans sa poche
+- **Alertes de prix** — notifications quand vos seuils sont atteints
+- **Simulation** — anticipez l'impact d'un achat avant de passer l'ordre
+- **Export CSV** — vos données toujours accessibles
+
+---
+
+## Stack technique
+
+- **Frontend** — React
+- **Backend** — Python / FastAPI
+- **Base de données** — MongoDB
+
+---
 
 ## Installation
 
-### 1. Backend
+### Prérequis
+- Docker
 
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-Créer un fichier `.env` dans `backend/` :
-```
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=portfoliohub
-```
-
-Lancer le serveur :
-```bash
-uvicorn server:app --host 0.0.0.0 --port 8001 --reload
-```
-
-### 2. Frontend
-
-```bash
-cd frontend
-yarn install
-```
-
-Créer un fichier `.env` dans `frontend/` :
-```
-REACT_APP_BACKEND_URL=http://localhost:8001
-```
-
-Lancer l'application :
-```bash
-yarn start
-```
-
-### 3. Accès
-
-- Frontend : http://localhost:3000
-- API : http://localhost:8001/api
-
-## Docker (optionnel)
-
+### Lancer l'application
 ```bash
 docker-compose up --build
 ```
+
+L'application est accessible sur `http://localhost:3000`
+
+---
+
+## Licence
+
+MIT — Maxime Frevacque © 2026
